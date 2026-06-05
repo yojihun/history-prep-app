@@ -90,6 +90,20 @@ export default function Chapter() {
                 sub.fillInTheBlanks && sub.fillInTheBlanks.length > 0 && (
                   <div key={sub.id} className="glass-card" style={{ marginBottom: '1rem' }}>
                     <h3 style={{ marginBottom: '1rem', color: 'var(--primary)', fontSize: '1.1rem' }}>{sub.title}</h3>
+                    
+                    {sub.imageUrl && (
+                      <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                        <img 
+                          src={sub.imageUrl} 
+                          alt={sub.imageCaption || sub.title}
+                          style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', objectFit: 'cover' }}
+                        />
+                        {sub.imageCaption && (
+                          <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>▲ {sub.imageCaption}</p>
+                        )}
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       {sub.fillInTheBlanks.map((blank, idx) => (
                         <BlankCard key={`${sub.id}-${idx}`} data={blank} index={idx} />
