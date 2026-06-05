@@ -84,7 +84,7 @@ const chapters = [
             title: "02 집단 사냥을 하고 농사를 짓다",
             objective: "선사 시대의 생활 모습을 유물과 유적을 통해 말할 수 있다.",
             page: 20,
-            imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Comb-pattern_pottery.jpg/500px-Comb-pattern_pottery.jpg",
+            imageUrl: "/images/pottery.png",
             imageCaption: "신석기 시대의 대표 유물: 빗살무늬 토기",
             fillInTheBlanks: [
               { sentence: "구석기 시대 사람들은 돌을 떼어 낸 [뗀석기]를 도구로 사용하였다.", answer: "뗀석기" },
@@ -113,7 +113,7 @@ const chapters = [
             title: "01 진・한이 발전하다",
             objective: "진과 한의 통치 체제가 갖는 특징을 설명할 수 있다.",
             page: 44,
-            imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Terracotta_Army%2C_Pit_1.jpg/500px-Terracotta_Army%2C_Pit_1.jpg",
+            imageUrl: "/images/terracotta.png",
             imageCaption: "진시황릉 병마용 갱 (강력한 황제 권력 상징)",
             fillInTheBlanks: [
               { sentence: "진시황제는 춘추 전국 시대를 통일하고 [군현제]를 전국적으로 실시하여 중앙 집권 체제를 확립하였다.", answer: "군현제" },
@@ -148,7 +148,7 @@ const chapters = [
             title: "02 수·당이 통일 제국으로 발전하다",
             objective: "수·당 시기 통치 체제와 문화의 특징을 설명할 수 있다.",
             page: 61,
-            imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Chang%27an_during_Tang_Dynasty.jpg/500px-Chang%27an_during_Tang_Dynasty.jpg",
+            imageUrl: "/images/changan.png",
             imageCaption: "개방적이고 국제적인 당의 수도, 장안성",
             fillInTheBlanks: [
               { sentence: "당은 율령 체제를 정비하여 중앙 행정 조직으로 [3성 6부]제를 운영하였다.", answer: "3성 6부" },
@@ -192,7 +192,7 @@ const chapters = [
             title: "02 몽골이 유라시아 대륙에 걸친 대제국을 건설하다",
             objective: "몽골 제국 시기 동서 교류의 확대가 끼친 영향을 파악할 수 있다.",
             page: 105,
-            imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Genghis_Khan.jpg/500px-Genghis_Khan.jpg",
+            imageUrl: "/images/genghis.png",
             imageCaption: "몽골 제국의 기틀을 다진 칭기즈 칸",
             fillInTheBlanks: [
               { sentence: "칭기즈 칸은 천호제와 백호제를 바탕으로 강력한 군대를 조직하고 [역참] 제도를 정비하여 제국을 넓혔다.", answer: "역참" },

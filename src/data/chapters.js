@@ -118,7 +118,7 @@ export const chapters = [
             "title": "02 집단 사냥을 하고 농사를 짓다",
             "objective": "선사 시대의 생활 모습을 유물과 유적을 통해 말할 수 있다.",
             "page": 20,
-            "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Comb-pattern_pottery.jpg/500px-Comb-pattern_pottery.jpg",
+            "imageUrl": "/images/pottery.png",
             "imageCaption": "신석기 시대의 대표 유물: 빗살무늬 토기",
             "fillInTheBlanks": [
               {
@@ -162,7 +162,7 @@ export const chapters = [
             "title": "01 진・한이 발전하다",
             "objective": "진과 한의 통치 체제가 갖는 특징을 설명할 수 있다.",
             "page": 44,
-            "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Terracotta_Army%2C_Pit_1.jpg/500px-Terracotta_Army%2C_Pit_1.jpg",
+            "imageUrl": "/images/terracotta.png",
             "imageCaption": "진시황릉 병마용 갱 (강력한 황제 권력 상징)",
             "fillInTheBlanks": [
               {
@@ -212,7 +212,7 @@ export const chapters = [
             "title": "02 수·당이 통일 제국으로 발전하다",
             "objective": "수·당 시기 통치 체제와 문화의 특징을 설명할 수 있다.",
             "page": 61,
-            "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Chang%27an_during_Tang_Dynasty.jpg/500px-Chang%27an_during_Tang_Dynasty.jpg",
+            "imageUrl": "/images/changan.png",
             "imageCaption": "개방적이고 국제적인 당의 수도, 장안성",
             "fillInTheBlanks": [
               {
@@ -274,7 +274,7 @@ export const chapters = [
             "title": "02 몽골이 유라시아 대륙에 걸친 대제국을 건설하다",
             "objective": "몽골 제국 시기 동서 교류의 확대가 끼친 영향을 파악할 수 있다.",
             "page": 105,
-            "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Genghis_Khan.jpg/500px-Genghis_Khan.jpg",
+            "imageUrl": "/images/genghis.png",
             "imageCaption": "몽골 제국의 기틀을 다진 칭기즈 칸",
             "fillInTheBlanks": [
               {
