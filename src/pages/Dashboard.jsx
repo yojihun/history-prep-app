@@ -4,18 +4,8 @@ import { chapters } from '../data/chapters';
 import Timeline from '../components/Timeline';
 
 export default function Dashboard() {
-  // Mock progress, eventually from LocalStorage
-  const totalProgress = 15; 
-
   return (
     <div className="animate-fade-in">
-      <div className="glass-card" style={{ marginBottom: '2rem' }}>
-        <h2>나의 학습 진도</h2>
-        <div className="progress-container">
-          <div className="progress-bar" style={{ width: `${totalProgress}%` }}></div>
-        </div>
-        <p className="text-muted">{totalProgress}% 완료 (전체 4개 대단원 중)</p>
-      </div>
 
       <Timeline />
 
