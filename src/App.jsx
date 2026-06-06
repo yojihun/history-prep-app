@@ -5,7 +5,7 @@ import Chapter from './pages/Chapter';
 
 function App() {
   const [nickname, setNickname] = useState(() => {
-    return localStorage.getItem('current_nickname') || '기본 학습자';
+    return localStorage.getItem('current_nickname') || '도담';
   });
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [newNickname, setNewNickname] = useState(nickname);
@@ -38,7 +38,7 @@ function App() {
                   className="btn btn-primary" 
                   style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
                   onClick={() => {
-                    const trimmed = newNickname.trim() || '기본 학습자';
+                    const trimmed = newNickname.trim() || '도담';
                     setNickname(trimmed);
                     localStorage.setItem('current_nickname', trimmed);
                     setIsEditingNickname(false);
