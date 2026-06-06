@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Circle, Volume2, RefreshCw, Award, Check, AlertCircle, Edit3, X, FileText } from 'lucide-react';
 import { chapters, quizzes } from '../data/chapters';
@@ -6,7 +6,7 @@ import FlashcardsSection from '../components/FlashcardsSection';
 import { playCorrectSound, playIncorrectSound } from '../utils/audio';
 import { gradeSubjectiveAnswer, checkLearningObjective, getObjectiveHint } from '../utils/gemini';
 
-export default function Chapter() {
+export default function Chapter({ nickname }) {
   const { chapterId } = useParams();
   const chapter = chapters.find(c => c.id === chapterId);
   const chapterQuizzes = quizzes.filter(q => q.chapterId === chapterId);
@@ -21,23 +21,31 @@ export default function Chapter() {
   const [isFetchingHint, setIsFetchingHint] = useState(false);
   const [hasRequestedHint, setHasRequestedHint] = useState(false);
   const [isCheckingObjective, setIsCheckingObjective] = useState(false);
-  const [objectiveNotes, setObjectiveNotes] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`notes_${chapterId}`);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
 
-  const [completedObjectives, setCompletedObjectives] = useState(() => {
+  const prefix = nickname ? `${nickname}_` : '';
+
+  const [objectiveNotes, setObjectiveNotes] = useState({});
+  const [completedObjectives, setCompletedObjectives] = useState(new Set());
+
+  // Reactively load notes and completed objectives when nickname or chapterId changes
+  useEffect(() => {
     try {
-      const saved = localStorage.getItem(`completed_objectives_${chapterId}`);
-      return saved ? new Set(JSON.parse(saved)) : new Set();
+      const savedNotes = localStorage.getItem(`${prefix}notes_${chapterId}`);
+      setObjectiveNotes(savedNotes ? JSON.parse(savedNotes) : {});
+      
+      const savedCompleted = localStorage.getItem(`${prefix}completed_objectives_${chapterId}`);
+      setCompletedObjectives(savedCompleted ? new Set(JSON.parse(savedCompleted)) : new Set());
     } catch {
-      return new Set();
+      setObjectiveNotes({});
+      setCompletedObjectives(new Set());
     }
-  });
+    // Reset modal states when switching profile/chapter
+    setSelectedObjective(null);
+    setUserNote("");
+    setObjectiveFeedback("");
+    setHintText("");
+    setHasRequestedHint(false);
+  }, [nickname, chapterId]);
 
   if (!chapter) return <div>Chapter not found</div>;
 
@@ -74,7 +82,7 @@ export default function Chapter() {
       }
     };
     setObjectiveNotes(newNotes);
-    localStorage.setItem(`notes_${chapterId}`, JSON.stringify(newNotes));
+    localStorage.setItem(`${prefix}notes_${chapterId}`, JSON.stringify(newNotes));
   };
 
   const handleCheckObjective = async () => {
@@ -103,20 +111,21 @@ export default function Chapter() {
       }
     };
     setObjectiveNotes(newNotes);
-    localStorage.setItem(`notes_${chapterId}`, JSON.stringify(newNotes));
+    localStorage.setItem(`${prefix}notes_${chapterId}`, JSON.stringify(newNotes));
     
     if (result.isCompleted) {
       playCorrectSound();
       setCompletedObjectives(prev => {
         const next = new Set(prev);
         next.add(selectedObjective.id);
-        localStorage.setItem(`completed_objectives_${chapterId}`, JSON.stringify(Array.from(next)));
+        localStorage.setItem(`${prefix}completed_objectives_${chapterId}`, JSON.stringify(Array.from(next)));
         return next;
       });
     } else {
       playIncorrectSound();
     }
   };
+
 
 
   return (
@@ -465,13 +474,13 @@ export default function Chapter() {
                       setCompletedObjectives(prev => {
                         const next = new Set(prev);
                         next.delete(selectedObjective.id);
-                        localStorage.setItem(`completed_objectives_${chapterId}`, JSON.stringify(Array.from(next)));
+                        localStorage.setItem(`${prefix}completed_objectives_${chapterId}`, JSON.stringify(Array.from(next)));
                         return next;
                       });
                       const newNotes = { ...objectiveNotes };
                       delete newNotes[selectedObjective.id];
                       setObjectiveNotes(newNotes);
-                      localStorage.setItem(`notes_${chapterId}`, JSON.stringify(newNotes));
+                      localStorage.setItem(`${prefix}notes_${chapterId}`, JSON.stringify(newNotes));
                       setUserNote("");
                       setObjectiveFeedback("");
                       setHintText("");
