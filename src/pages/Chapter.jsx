@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Circle, Volume2, RefreshCw, Award, Check, AlertCircle, Edit3 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, Volume2, RefreshCw, Award, Check, AlertCircle, Edit3, X, FileText } from 'lucide-react';
 import { chapters, quizzes } from '../data/chapters';
 import FlashcardsSection from '../components/FlashcardsSection';
 import { playCorrectSound, playIncorrectSound } from '../utils/audio';
-import { gradeSubjectiveAnswer } from '../utils/gemini';
+import { gradeSubjectiveAnswer, checkLearningObjective } from '../utils/gemini';
 
 export default function Chapter() {
   const { chapterId } = useParams();
@@ -13,17 +13,74 @@ export default function Chapter() {
   const subjectiveQuizzes = chapter ? (chapter.subjectiveQuizzes || []) : [];
   
   const [activeTab, setActiveTab] = useState('objectives'); // 'objectives' | 'blanks' | 'flashcards' | 'quiz' | 'subjective_quiz'
-  const [completedObjectives, setCompletedObjectives] = useState(new Set());
+  
+  const [selectedObjective, setSelectedObjective] = useState(null);
+  const [userNote, setUserNote] = useState("");
+  const [objectiveFeedback, setObjectiveFeedback] = useState("");
+  const [isCheckingObjective, setIsCheckingObjective] = useState(false);
+  const [objectiveNotes, setObjectiveNotes] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`notes_${chapterId}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [completedObjectives, setCompletedObjectives] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`completed_objectives_${chapterId}`);
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
 
   if (!chapter) return <div>Chapter not found</div>;
 
-  const toggleObjective = (id) => {
-    setCompletedObjectives(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const handleObjectiveClick = (sub) => {
+    setSelectedObjective(sub);
+    setUserNote(objectiveNotes[sub.id]?.noteText || "");
+    setObjectiveFeedback(objectiveNotes[sub.id]?.latestFeedback || "");
+  };
+
+  const handleCheckObjective = async () => {
+    if (!userNote.trim()) return;
+    setIsCheckingObjective(true);
+    
+    const result = await checkLearningObjective(
+      selectedObjective.objective,
+      {
+        fillInTheBlanks: selectedObjective.fillInTheBlanks,
+        flashcards: selectedObjective.flashcards
+      },
+      userNote
+    );
+    
+    setIsCheckingObjective(false);
+    setObjectiveFeedback(result.feedback);
+    
+    const newNotes = {
+      ...objectiveNotes,
+      [selectedObjective.id]: {
+        noteText: userNote,
+        latestFeedback: result.feedback
+      }
+    };
+    setObjectiveNotes(newNotes);
+    localStorage.setItem(`notes_${chapterId}`, JSON.stringify(newNotes));
+    
+    if (result.isCompleted) {
+      playCorrectSound();
+      setCompletedObjectives(prev => {
+        const next = new Set(prev);
+        next.add(selectedObjective.id);
+        localStorage.setItem(`completed_objectives_${chapterId}`, JSON.stringify(Array.from(next)));
+        return next;
+      });
+    } else {
+      playIncorrectSound();
+    }
   };
 
   return (
@@ -80,15 +137,29 @@ export default function Chapter() {
                 {section.subsections.map(sub => (
                   <div 
                     key={sub.id} 
-                    style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', cursor: 'pointer' }}
-                    onClick={() => toggleObjective(sub.id)}
+                    style={{ 
+                      display: 'flex', 
+                      gap: '1rem', 
+                      alignItems: 'flex-start', 
+                      cursor: 'pointer',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      backgroundColor: completedObjectives.has(sub.id) ? 'rgba(34, 197, 94, 0.05)' : 'transparent',
+                      border: completedObjectives.has(sub.id) ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid transparent',
+                      transition: 'all 0.2s'
+                    }}
+                    onClick={() => handleObjectiveClick(sub)}
+                    className="objective-item"
                   >
                     <div style={{ color: completedObjectives.has(sub.id) ? 'var(--secondary)' : 'var(--text-muted)', marginTop: '2px' }}>
                       {completedObjectives.has(sub.id) ? <CheckCircle2 size={20} /> : <Circle size={20} />}
                     </div>
-                    <div>
-                      <h4 style={{ marginBottom: '0.25rem' }}>{sub.title} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>(p.{sub.page})</span></h4>
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{sub.objective}</p>
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {sub.title} 
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>(p.{sub.page})</span>
+                      </h4>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0 }}>{sub.objective}</p>
                     </div>
                   </div>
                 ))}
@@ -143,6 +214,248 @@ export default function Chapter() {
 
       {activeTab === 'subjective_quiz' && (
         <SubjectiveQuizMode subjectiveQuizzes={subjectiveQuizzes} />
+      )}
+
+      {/* 학습목표 서술 노트패드 모달 */}
+      {selectedObjective && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1.5rem',
+            animation: 'fadeIn 0.25s ease-out'
+          }}
+          onClick={() => setSelectedObjective(null)}
+        >
+          <div 
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '650px',
+              border: '1px solid var(--border)',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh',
+              animation: 'fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 모달 헤더 */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1px solid var(--border)',
+              backgroundColor: 'rgba(30, 58, 138, 0.03)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--primary)' }}>
+                <FileText size={22} />
+                <h3 style={{ margin: 0, fontSize: '1.2rem' }}>학습목표 달성 노트패드</h3>
+              </div>
+              <button 
+                onClick={() => setSelectedObjective(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--border)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* 모달 바디 */}
+            <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
+              {/* 학습 목표 정보 */}
+              <div style={{ 
+                padding: '1rem', 
+                backgroundColor: completedObjectives.has(selectedObjective.id) ? 'rgba(34, 197, 94, 0.08)' : 'rgba(217, 119, 6, 0.05)', 
+                borderRadius: '8px', 
+                borderLeft: `4px solid ${completedObjectives.has(selectedObjective.id) ? '#22c55e' : 'var(--secondary)'}`
+              }}>
+                <span style={{ 
+                  fontSize: '0.8rem', 
+                  fontWeight: 'bold', 
+                  color: completedObjectives.has(selectedObjective.id) ? '#22c55e' : 'var(--secondary)',
+                  textTransform: 'uppercase',
+                  display: 'block',
+                  marginBottom: '0.25rem'
+                }}>
+                  {completedObjectives.has(selectedObjective.id) ? '달성 완료됨' : '미달성 목표'}
+                </span>
+                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.05rem' }}>{selectedObjective.title}</h4>
+                <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text)', lineHeight: '1.5', fontWeight: '500' }}>
+                  🎯 {selectedObjective.objective}
+                </p>
+              </div>
+
+              {/* 필기 패드 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>
+                  서술하기 (이 소단원의 핵심 내용을 포함하여 자유롭게 정리해 보세요)
+                </label>
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <div style={{
+                    position: 'absolute',
+                    left: '2rem',
+                    top: 0,
+                    bottom: 0,
+                    width: '1px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+                    pointerEvents: 'none',
+                    zIndex: 2
+                  }} />
+                  <textarea
+                    value={userNote}
+                    onChange={(e) => setUserNote(e.target.value)}
+                    disabled={isCheckingObjective}
+                    placeholder="여기에 내용을 서술하세요. 해당 단원의 빈칸 채우기나 핵심 단어들을 활용해 설명하면 학습 목표를 쉽게 달성할 수 있습니다."
+                    style={{
+                      width: '100%',
+                      minHeight: '180px',
+                      padding: '1rem 1rem 1rem 3rem',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      backgroundColor: 'var(--background)',
+                      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px)',
+                      backgroundSize: '100% 1.8rem',
+                      lineHeight: '1.8rem',
+                      color: 'var(--text)',
+                      fontFamily: 'inherit',
+                      fontSize: '1rem',
+                      resize: 'none',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)',
+                      position: 'relative',
+                      zIndex: 1
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 로딩 표시 */}
+              {isCheckingObjective && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', color: 'var(--primary)', backgroundColor: 'rgba(30, 58, 138, 0.05)', borderRadius: '8px' }}>
+                  <RefreshCw className="animate-spin" size={18} />
+                  <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>AI 교사가 서술 내용을 검토하고 있습니다...</span>
+                </div>
+              )}
+
+              {/* 피드백 영역 */}
+              {objectiveFeedback && !isCheckingObjective && (
+                <div className="animate-fade-in" style={{ 
+                  padding: '1.25rem', 
+                  backgroundColor: completedObjectives.has(selectedObjective.id) ? 'rgba(34, 197, 94, 0.08)' : 'var(--background)', 
+                  borderRadius: '8px', 
+                  borderLeft: `4px solid ${completedObjectives.has(selectedObjective.id) ? '#22c55e' : '#eab308'}`,
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    {completedObjectives.has(selectedObjective.id) ? (
+                      <CheckCircle2 size={18} style={{ color: '#22c55e' }} />
+                    ) : (
+                      <AlertCircle size={18} style={{ color: '#eab308' }} />
+                    )}
+                    <strong style={{ 
+                      fontSize: '0.95rem',
+                      color: completedObjectives.has(selectedObjective.id) ? '#16a34a' : '#c2410c'
+                    }}>
+                      {completedObjectives.has(selectedObjective.id) ? '달성 축하 피드백' : 'AI 교사의 보완 힌트 (생각해 보기)'}
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, wordBreak: 'keep-all', whiteSpace: 'pre-wrap' }}>
+                    {objectiveFeedback}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* 모달 푸터 */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1rem 1.5rem',
+              borderTop: '1px solid var(--border)',
+              backgroundColor: 'rgba(0, 0, 0, 0.02)'
+            }}>
+              <div>
+                {completedObjectives.has(selectedObjective.id) && (
+                  <button 
+                    className="btn btn-outline"
+                    onClick={() => {
+                      setCompletedObjectives(prev => {
+                        const next = new Set(prev);
+                        next.delete(selectedObjective.id);
+                        localStorage.setItem(`completed_objectives_${chapterId}`, JSON.stringify(Array.from(next)));
+                        return next;
+                      });
+                      const newNotes = { ...objectiveNotes };
+                      delete newNotes[selectedObjective.id];
+                      setObjectiveNotes(newNotes);
+                      localStorage.setItem(`notes_${chapterId}`, JSON.stringify(newNotes));
+                      setUserNote("");
+                      setObjectiveFeedback("");
+                    }}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', color: '#ef4444', borderColor: '#ef4444' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ef4444';
+                      e.currentTarget.style.color = '#fff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#ef4444';
+                    }}
+                  >
+                    초기화하고 다시 작성
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button 
+                  className="btn btn-outline"
+                  onClick={() => setSelectedObjective(null)}
+                  style={{ padding: '0.6rem 1.2rem' }}
+                >
+                  닫기
+                </button>
+                {!completedObjectives.has(selectedObjective.id) && (
+                  <button 
+                    className="btn btn-primary"
+                    onClick={handleCheckObjective}
+                    disabled={!userNote.trim() || isCheckingObjective}
+                    style={{ padding: '0.6rem 1.5rem' }}
+                  >
+                    제출하고 채점받기
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
