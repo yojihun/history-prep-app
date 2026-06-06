@@ -277,3 +277,102 @@ export function stopStaticTTS() {
     currentAudio = null;
   }
 }
+
+// Play a triumphant arpeggio for Level Ups
+export function playLevelUpSound() {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; // C4, E4, G4, C5, E5, G5, C6
+    
+    notes.forEach((freq, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + index * 0.08);
+      
+      gain.gain.setValueAtTime(0.0, now + index * 0.08);
+      gain.gain.linearRampToValueAtTime(0.12, now + index * 0.08 + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.5);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(now + index * 0.08);
+      osc.stop(now + index * 0.08 + 0.5);
+    });
+  } catch (e) {
+    console.error("Audio error:", e);
+  }
+}
+
+// Play a sparkling sound for earning gems
+export function playGemRewardSound() {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    const notes = [987.77, 1318.51, 1567.98, 1975.53]; // B5, E6, G6, B6
+    
+    notes.forEach((freq, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + index * 0.05);
+      
+      gain.gain.setValueAtTime(0.0, now + index * 0.05);
+      gain.gain.linearRampToValueAtTime(0.1, now + index * 0.05 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.05 + 0.3);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(now + index * 0.05);
+      osc.stop(now + index * 0.05 + 0.3);
+    });
+  } catch (e) {
+    console.error("Audio error:", e);
+  }
+}
+
+// Play a short brassy fanfare for milestones
+export function playMilestoneFanfare() {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    
+    // First chord (C major triad)
+    const chord1 = [392.00, 523.25, 659.25]; // G4, C5, E5
+    chord1.forEach(freq => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    });
+
+    // Second chord (G major triad)
+    const chord2 = [493.88, 587.33, 783.99]; // B4, D5, G5
+    chord2.forEach(freq => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now + 0.35);
+      gain.gain.setValueAtTime(0.08, now + 0.35);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + 0.35);
+      osc.stop(now + 0.7);
+    });
+  } catch (e) {
+    console.error("Audio error:", e);
+  }
+}
+

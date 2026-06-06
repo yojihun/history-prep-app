@@ -6,7 +6,7 @@ import FlashcardsSection from '../components/FlashcardsSection';
 import { playCorrectSound, playIncorrectSound } from '../utils/audio';
 import { gradeSubjectiveAnswer, checkLearningObjective, getObjectiveHint } from '../utils/gemini';
 
-export default function Chapter({ nickname }) {
+export default function Chapter({ nickname, addXp, addGems, triggerMascot }) {
   const { chapterId } = useParams();
   const chapter = chapters.find(c => c.id === chapterId);
   const chapterQuizzes = quizzes.filter(q => q.chapterId === chapterId);
@@ -83,6 +83,9 @@ export default function Chapter({ nickname }) {
     };
     setObjectiveNotes(newNotes);
     localStorage.setItem(`${prefix}notes_${chapterId}`, JSON.stringify(newNotes));
+    
+    // Play a friendly soft hint sound or minor hint trigger
+    triggerMascot('scholar', '힌트가 도착했소! 찬찬히 읽어보시오.', '생각을 보완해봅시다');
   };
 
   const handleCheckObjective = async () => {
@@ -115,6 +118,9 @@ export default function Chapter({ nickname }) {
     
     if (result.isCompleted) {
       playCorrectSound();
+      addXp(50);
+      addGems(2);
+      triggerMascot('king', '학업의 근간이 튼튼하구나! 훌륭하다.', '+50 XP / 💎 +2');
       setCompletedObjectives(prev => {
         const next = new Set(prev);
         next.add(selectedObjective.id);
@@ -123,6 +129,7 @@ export default function Chapter({ nickname }) {
       });
     } else {
       playIncorrectSound();
+      triggerMascot('scholar', '개념이 일부 누락되었구려. 피드백을 보시오.', '힌트를 참고해 보충하세요');
     }
   };
 
@@ -254,11 +261,11 @@ export default function Chapter({ nickname }) {
       )}
 
       {activeTab === 'quiz' && (
-        <QuizMode chapterQuizzes={chapterQuizzes} />
+        <QuizMode chapterQuizzes={chapterQuizzes} addXp={addXp} triggerMascot={triggerMascot} />
       )}
 
       {activeTab === 'subjective_quiz' && (
-        <SubjectiveQuizMode subjectiveQuizzes={subjectiveQuizzes} />
+        <SubjectiveQuizMode subjectiveQuizzes={subjectiveQuizzes} addXp={addXp} addGems={addGems} triggerMascot={triggerMascot} />
       )}
 
       {/* 학습목표 서술 노트패드 모달 */}
@@ -601,7 +608,7 @@ function BlankCard({ data, index }) {
 // ----------------------------------------------------
 // QUIZ MODE (One question at a time with correct/incorrect sounds)
 // ----------------------------------------------------
-function QuizMode({ chapterQuizzes }) {
+function QuizMode({ chapterQuizzes, addXp, triggerMascot }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -639,8 +646,11 @@ function QuizMode({ chapterQuizzes }) {
     if (isCorrect) {
       setScore(prev => prev + 1);
       playCorrectSound();
+      addXp(15);
+      triggerMascot('general', '정답일세! 기세가 조조와 같구려!', '+15 XP');
     } else {
       playIncorrectSound();
+      triggerMascot('scholar', '아깝소. 다시 차분하게 복기해 보시오.', '해설을 참고하세요');
     }
   };
 
@@ -768,7 +778,7 @@ function QuizMode({ chapterQuizzes }) {
 // ----------------------------------------------------
 // SUBJECTIVE QUIZ MODE (School Exam style rated by Gemini)
 // ----------------------------------------------------
-function SubjectiveQuizMode({ subjectiveQuizzes }) {
+function SubjectiveQuizMode({ subjectiveQuizzes, addXp, addGems, triggerMascot }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
   const [gradingResult, setGradingResult] = useState(null); // { grade, feedback }
@@ -811,8 +821,12 @@ function SubjectiveQuizMode({ subjectiveQuizzes }) {
 
     if (result.grade === 'A' || result.grade === 'B') {
       playCorrectSound();
+      addXp(30);
+      addGems(1);
+      triggerMascot('scholar', '문장이 유려하고 논리가 바르오!', '+30 XP / 💎 +1');
     } else {
       playIncorrectSound();
+      triggerMascot('king', '아직 정밀함이 부족하오. 힘내시게!', '다시 도전해 보시오');
     }
   };
 
