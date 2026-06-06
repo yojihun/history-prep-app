@@ -1,24 +1,8 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, Check, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Layers, Award, Volume2, VolumeX, Edit3 } from 'lucide-react';
-import { playCorrectSound, playIncorrectSound } from '../utils/audio';
+import { playCorrectSound, playIncorrectSound, playStaticTTS, stopStaticTTS } from '../utils/audio';
 import { gradeSubjectiveAnswer } from '../utils/gemini';
 
-// Helper to choose a random Korean voice for SpeechSynthesis
-function speakKoreanText(text, voiceIndexOffset = 0) {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'ko-KR';
-  
-  const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('ko') || v.lang.includes('KO'));
-  if (voices.length > 0) {
-    // Select voice dynamically based on offset to ensure variety
-    const selectedVoice = voices[(voiceIndexOffset) % voices.length];
-    utterance.voice = selectedVoice;
-  }
-  utterance.rate = 0.95;
-  window.speechSynthesis.speak(utterance);
-}
 
 export default function FlashcardsSection({ chapter }) {
   const allCards = chapter.sections.flatMap(sec => 
@@ -402,16 +386,13 @@ function TestMode({ cards }) {
     initTest();
   }, [cards]);
 
-  // TTS Voice Randomization trigger on index change
+  // Static TTS Trigger on question changes
   useEffect(() => {
     if (useTTS && questions.length > 0 && !isFinished && !isSubmitted) {
-      // Pass currentIndex to speakKoreanText to vary the voice index
-      speakKoreanText(questions[currentIndex].definition, currentIndex);
+      playStaticTTS(questions[currentIndex].definition);
     }
     return () => {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+      stopStaticTTS();
     };
   }, [currentIndex, useTTS, questions, isFinished, isSubmitted]);
 
@@ -428,10 +409,10 @@ function TestMode({ cards }) {
     if (isCorrect) {
       setScore(prev => prev + 1);
       playCorrectSound();
-      // Wait 1.2 seconds, then read correct term aloud using randomized voice
+      // Read correct term aloud
       setTimeout(() => {
-        speakKoreanText(`정답은 ${questions[currentIndex].correctTerm}입니다.`, currentIndex + 1);
-      }, 1000);
+        playStaticTTS(`정답은 ${questions[currentIndex].correctTerm}입니다.`);
+      }, 900);
     } else {
       playIncorrectSound();
     }
@@ -488,7 +469,7 @@ function TestMode({ cards }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
               <h4 style={{ color: 'var(--primary)', margin: 0, fontSize: '0.9rem' }}>다음 설명이 뜻하는 역사 용어를 고르세요:</h4>
               <button 
-                onClick={() => speakKoreanText(currentQ.definition, currentIndex)}
+                onClick={() => playStaticTTS(currentQ.definition)}
                 style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
               >
                 <Volume2 size={15} />
