@@ -14,6 +14,8 @@ const chapters = [
             title: "01 역사란 무엇인가",
             objective: "역사의 의미를 이해하고, 역사적 사실이 역사가의 관점과 기준에 따라 다르게 해석될 수 있음을 설명할 수 있다.",
             page: 10,
+            imageUrl: "/images/sillok.png",
+            imageCaption: "조선 시대의 대표적 역사 기록: 조선왕조실록 (기록으로서의 역사)",
             fillInTheBlanks: [
               { sentence: "역사는 과거에 일어난 [사실] 그 자체를 의미하기도 하고, 역사가가 의미 있다고 판단하여 선택하고 해석한 [기록]을 의미하기도 한다.", answer: "사실, 기록" },
               { sentence: "역사가의 관점이 반영되지 않은 객관적 과거 자체를 [사실]로서의 역사라고 한다.", answer: "사실" },
@@ -41,6 +43,8 @@ const chapters = [
             title: "01 역사 탐구에 필요한 자료는 무엇일까",
             objective: "문헌, 유물, 유적 등 역사 자료의 종류를 알고, 역사 자료를 비판적으로 검토하여 역사 탐구에 활용할 수 있다.",
             page: 13,
+            imageUrl: "/images/mummy.png",
+            imageCaption: "역사 탐구의 중요한 자료: 이집트 미라와 피라미드",
             fillInTheBlanks: [
               { sentence: "과거 사람들이 남긴 흔적 중 역사를 연구하는 데 바탕이 되는 모든 자료를 [사료]라고 한다.", answer: "사료" },
               { sentence: "문자로 기록된 책, 문서 등은 [문헌] 사료이고, 도자기나 건축물 같은 것은 비문헌 사료이다.", answer: "문헌" }
@@ -73,6 +77,8 @@ const chapters = [
             title: "01 인류가 출현하여 진화를 거듭하다",
             objective: "인류가 생태 환경과 상호 영향을 주고받으며 진화하였음을 설명할 수 있다.",
             page: 18,
+            imageUrl: "/images/lucy.png",
+            imageCaption: "최초의 인류 화석: 루시 (오스트랄로피테쿠스 아파렌시스)",
             fillInTheBlanks: [
               { sentence: "최초의 인류인 [오스트랄로피테쿠스] 아파렌시스는 두 발로 걷기 시작했다.", answer: "오스트랄로피테쿠스" },
               { sentence: "불과 언어를 사용하기 시작한 인류는 호모 [에렉투스]이다.", answer: "에렉투스" },
@@ -97,6 +103,8 @@ const chapters = [
             title: "03 큰 강 유역에서 문명이 발생하다",
             objective: "4대 문명의 발생 배경과 공통점을 설명할 수 있다.",
             page: 23,
+            imageUrl: "/images/mesopotamia.png",
+            imageCaption: "메소포타미아 문명의 지구라트 (신권 정치의 상징)",
             fillInTheBlanks: [
               { sentence: "고대 문명은 주로 물이 풍부하고 농사짓기 좋은 [큰 강] 유역에서 발생하였다.", answer: "큰 강" },
               { sentence: "문명 발생 지역에서는 청동기 사용, [문자] 발명, 국가(도시)의 성립 등의 공통적인 특징이 나타난다.", answer: "문자" }
@@ -138,6 +146,8 @@ const chapters = [
             title: "01 중국이 오랜 기간 분열하다",
             objective: "위진 남북조 시대 사회의 변화와 문화의 특징을 설명할 수 있다.",
             page: 58,
+            imageUrl: "/images/grottoes.png",
+            imageCaption: "위진 남북조 시대의 대표적 불교 유적: 룽먼 석굴 (낙양)",
             fillInTheBlanks: [
               { sentence: "위진 남북조 시대에는 강남 지역으로 이주한 한족에 의해 [강남] 개발이 본격화되었다.", answer: "강남" },
               { sentence: "북위의 효문제는 유목 민족의 풍습을 금지하고 한족의 문화와 제도를 수용하는 [한화 정책]을 추진하였다.", answer: "한화 정책" }
@@ -160,6 +170,8 @@ const chapters = [
             title: "04 동아시아 문화권을 형성하다",
             objective: "동아시아 문화의 특징을 설명할 수 있다.",
             page: 66,
+            imageUrl: "/images/hanja.png",
+            imageCaption: "동아시아 문화권의 공통 요소: 한자 목판 인쇄본",
             fillInTheBlanks: [
               { sentence: "동아시아 문화권의 4대 공통 요소는 한자, 유교, 불교, 그리고 [율령]이다.", answer: "율령" }
             ]
@@ -181,6 +193,8 @@ const chapters = [
             title: "01 송과 북방 민족이 성장하다",
             objective: "송과 북방 민족이 함께 성장하던 시기의 국제 관계를 설명할 수 있다.",
             page: 100,
+            imageUrl: "/images/kaifeng.png",
+            imageCaption: "번영하는 송의 수도 카이펑을 묘사한 청명상하도",
             fillInTheBlanks: [
               { sentence: "송은 문신을 우대하고 무신을 통제하는 [문치주의] 정책을 실시하여 황제 독재 체제를 강화했다.", answer: "문치주의" },
               { sentence: "송나라 시기에는 사대부 계층이 지배층으로 성장하였고, 우주의 원리와 인간의 본성을 탐구하는 [성리학]이 발달하였다.", answer: "성리학" },
@@ -210,6 +224,8 @@ const chapters = [
             title: "01 명·청이 동아시아 국제 질서를 주도하다",
             objective: "명·청 중심의 동아시아 국제 질서를 설명할 수 있다.",
             page: 110,
+            imageUrl: "/images/forbidden_city.png",
+            imageCaption: "명·청 황제 독재 권력의 중심: 자금성",
             fillInTheBlanks: [
               { sentence: "명 태조 홍무제는 농촌에 [이갑제]를 실시하여 세금을 걷고 치안을 유지하였다.", answer: "이갑제" },
               { sentence: "청나라는 한족을 회유하기 위해 명의 제도를 유지하면서도, 복종을 강요하기 위해 [변발]과 호복을 강요하였다.", answer: "변발" },
