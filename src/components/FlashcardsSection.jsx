@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Check, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Layers, Award } from 'lucide-react';
+import { RefreshCw, Check, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Layers, Award, Volume2, VolumeX } from 'lucide-react';
 
 export default function FlashcardsSection({ chapter }) {
   // Collect all flashcards from all subsections of this chapter
@@ -344,6 +344,18 @@ function MemoryMode({ cards }) {
 // 3) TEST MODE (Multiple Choice Test)
 // ----------------------------------------------------
 function TestMode({ cards }) {
+  const [useTTS, setUseTTS] = useState(true);
+
+  // Helper to speak Korean text
+  const speakText = (text) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel(); // Cancel current speaking
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.95; // Clear natural rate
+    window.speechSynthesis.speak(utterance);
+  };
+
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -395,6 +407,18 @@ function TestMode({ cards }) {
     initTest();
   }, [cards]);
 
+  // TTS Trigger on question changes
+  useEffect(() => {
+    if (useTTS && questions.length > 0 && !isFinished) {
+      speakText(questions[currentIndex].definition);
+    }
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [currentIndex, useTTS, questions, isFinished]);
+
   const handleSelect = (idx) => {
     if (isSubmitted) return;
     setSelectedAnswer(idx);
@@ -440,13 +464,33 @@ function TestMode({ cards }) {
         </div>
       ) : (
         <div className="glass-card" style={{ width: '100%', maxWidth: '500px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem', alignItems: 'center' }}>
             <span>테스트 문항: <strong>{currentIndex + 1} / {questions.length}</strong></span>
-            <span>현재 점수: <strong>{score}점</strong></span>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button 
+                onClick={() => setUseTTS(!useTTS)} 
+                className="btn btn-outline"
+                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', height: '28px', minHeight: 'auto' }}
+                title={useTTS ? "자동 읽기 끄기" : "자동 읽기 켜기"}
+              >
+                {useTTS ? <Volume2 size={13} /> : <VolumeX size={13} />}
+                음성 {useTTS ? 'ON' : 'OFF'}
+              </button>
+              <span>현재 점수: <strong>{score}점</strong></span>
+            </div>
           </div>
 
           <div style={{ padding: '1.25rem', backgroundColor: 'var(--background)', borderRadius: '8px', borderLeft: '4px solid var(--primary)', marginBottom: '1.5rem' }}>
-            <h4 style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>다음 설명이 뜻하는 역사 용어를 고르세요:</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+              <h4 style={{ color: 'var(--primary)', margin: 0, fontSize: '0.9rem' }}>다음 설명이 뜻하는 역사 용어를 고르세요:</h4>
+              <button 
+                onClick={() => speakText(currentQ.definition)}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                title="다시 듣기"
+              >
+                <Volume2 size={15} />
+              </button>
+            </div>
             <p style={{ fontSize: '1.1rem', lineHeight: '1.6', margin: 0, wordBreak: 'keep-all' }}>
               "{currentQ.definition}"
             </p>
