@@ -1,8 +1,26 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Check, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Layers, Award, Volume2, VolumeX } from 'lucide-react';
+import { RefreshCw, Check, AlertCircle, ArrowLeft, ArrowRight, BookOpen, Layers, Award, Volume2, VolumeX, Edit3 } from 'lucide-react';
+import { playCorrectSound, playIncorrectSound } from '../utils/audio';
+import { gradeSubjectiveAnswer } from '../utils/gemini';
+
+// Helper to choose a random Korean voice for SpeechSynthesis
+function speakKoreanText(text, voiceIndexOffset = 0) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'ko-KR';
+  
+  const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('ko') || v.lang.includes('KO'));
+  if (voices.length > 0) {
+    // Select voice dynamically based on offset to ensure variety
+    const selectedVoice = voices[(voiceIndexOffset) % voices.length];
+    utterance.voice = selectedVoice;
+  }
+  utterance.rate = 0.95;
+  window.speechSynthesis.speak(utterance);
+}
 
 export default function FlashcardsSection({ chapter }) {
-  // Collect all flashcards from all subsections of this chapter
   const allCards = chapter.sections.flatMap(sec => 
     sec.subsections.flatMap(sub => 
       (sub.flashcards || []).map(card => ({
@@ -12,7 +30,7 @@ export default function FlashcardsSection({ chapter }) {
     )
   );
 
-  const [mode, setMode] = useState('study'); // 'study' | 'memory' | 'test'
+  const [mode, setMode] = useState('study'); // 'study' | 'memory' | 'test' | 'subjective'
 
   if (allCards.length === 0) {
     return (
@@ -25,30 +43,38 @@ export default function FlashcardsSection({ chapter }) {
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Mode Selector */}
-      <div className="glass-card" style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', padding: '1rem' }}>
+      <div className="glass-card" style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', padding: '1rem' }}>
         <button 
           className={`btn ${mode === 'study' ? 'btn-primary' : 'btn-outline'}`}
           onClick={() => setMode('study')}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
         >
-          <BookOpen size={18} />
-          뒤집기 카드 학습
+          <BookOpen size={16} />
+          카드 뒤집기
         </button>
         <button 
           className={`btn ${mode === 'memory' ? 'btn-primary' : 'btn-outline'}`}
           onClick={() => setMode('memory')}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
         >
-          <Layers size={18} />
-          메모리 매칭 게임
+          <Layers size={16} />
+          메모리 매칭
         </button>
         <button 
           className={`btn ${mode === 'test' ? 'btn-primary' : 'btn-outline'}`}
           onClick={() => setMode('test')}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
         >
-          <Award size={18} />
-          용어 객관식 테스트
+          <Award size={16} />
+          객관식 테스트
+        </button>
+        <button 
+          className={`btn ${mode === 'subjective' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setMode('subjective')}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
+        >
+          <Edit3 size={16} />
+          서술형 테스트
         </button>
       </div>
 
@@ -56,6 +82,7 @@ export default function FlashcardsSection({ chapter }) {
       {mode === 'study' && <StudyMode cards={allCards} />}
       {mode === 'memory' && <MemoryMode cards={allCards} />}
       {mode === 'test' && <TestMode cards={allCards} />}
+      {mode === 'subjective' && <SubjectiveMode cards={allCards} />}
     </div>
   );
 }
@@ -85,9 +112,9 @@ function StudyMode({ cards }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-      <div style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+      <div style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
         <span>단원 전체 카드 수: <strong>{cards.length}장</strong></span>
-        <span style={{ marginLeft: 'auto' }}>진행률: <strong>{currentIndex + 1} / {cards.length}</strong></span>
+        <span>진행률: <strong>{currentIndex + 1} / {cards.length}</strong></span>
       </div>
 
       {/* Card Container */}
@@ -113,7 +140,6 @@ function StudyMode({ cards }) {
         >
           {/* Card Front (Term) */}
           <div 
-            className="glass-cardFront"
             style={{
               position: 'absolute',
               width: '100%',
@@ -139,7 +165,6 @@ function StudyMode({ cards }) {
 
           {/* Card Back (Definition) */}
           <div 
-            className="glass-cardBack"
             style={{
               position: 'absolute',
               width: '100%',
@@ -193,20 +218,16 @@ function MemoryMode({ cards }) {
   const [moves, setMoves] = useState(0);
   const [isWon, setIsWon] = useState(false);
 
-  // Initialize the game
   const initGame = () => {
-    // Select up to 6 random cards
     const shuffled = [...cards].sort(() => 0.5 - Math.random());
     const selected = shuffled.slice(0, 6);
 
-    // Create 12 card items (6 terms, 6 definitions)
     const items = [];
     selected.forEach((c) => {
       items.push({ id: `term-${c.term}`, type: 'term', text: c.term, term: c.term });
       items.push({ id: `def-${c.term}`, type: 'def', text: c.definition, term: c.term });
     });
 
-    // Shuffle the 12 items
     const shuffledItems = items.sort(() => 0.5 - Math.random());
     setGameCards(shuffledItems);
     setSelectedCards([]);
@@ -220,9 +241,9 @@ function MemoryMode({ cards }) {
   }, [cards]);
 
   const handleCardClick = (index) => {
-    if (selectedCards.length === 2) return; // wait for check
-    if (selectedCards.includes(index)) return; // already clicked
-    if (matchedPairs.includes(gameCards[index].term)) return; // already matched
+    if (selectedCards.length === 2) return;
+    if (selectedCards.includes(index)) return;
+    if (matchedPairs.includes(gameCards[index].term)) return;
 
     const nextSelected = [...selectedCards, index];
     setSelectedCards(nextSelected);
@@ -233,7 +254,6 @@ function MemoryMode({ cards }) {
       const secondCard = gameCards[nextSelected[1]];
 
       if (firstCard.term === secondCard.term) {
-        // Match found
         setTimeout(() => {
           setMatchedPairs(prev => {
             const next = [...prev, firstCard.term];
@@ -245,7 +265,6 @@ function MemoryMode({ cards }) {
           setSelectedCards([]);
         }, 500);
       } else {
-        // Match failed - flip back
         setTimeout(() => {
           setSelectedCards([]);
         }, 1200);
@@ -255,9 +274,9 @@ function MemoryMode({ cards }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-      <div style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+      <div style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
         <span>매칭 시도 횟수: <strong>{moves}회</strong></span>
-        <button onClick={initGame} className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: 'auto' }}>
+        <button onClick={initGame} className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <RefreshCw size={14} /> 새 게임 시작
         </button>
       </div>
@@ -300,34 +319,24 @@ function MemoryMode({ cards }) {
                   cursor: isMatched ? 'default' : 'pointer',
                   userSelect: 'none',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  transform: showFace ? 'rotateY(0deg)' : 'rotateY(0deg)',
-                  boxShadow: showFace ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
                   boxSizing: 'border-box'
                 }}
               >
                 {showFace ? (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    height: '100%'
+                  <span style={{ 
+                    fontSize: card.type === 'term' ? '1.1rem' : '0.8rem', 
+                    fontWeight: card.type === 'term' ? 'bold' : 'normal',
+                    textAlign: 'center', 
+                    color: isMatched ? '#22c55e' : 'var(--text)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 5,
+                    WebkitBoxOrient: 'vertical',
+                    wordBreak: 'keep-all'
                   }}>
-                    <span style={{ 
-                      fontSize: card.type === 'term' ? '1.1rem' : '0.8rem', 
-                      fontWeight: card.type === 'term' ? 'bold' : 'normal',
-                      textAlign: 'center', 
-                      color: isMatched ? '#22c55e' : 'var(--text)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 5,
-                      WebkitBoxOrient: 'vertical',
-                      wordBreak: 'keep-all'
-                    }}>
-                      {card.text}
-                    </span>
-                  </div>
+                    {card.text}
+                  </span>
                 ) : (
                   <div style={{ color: 'var(--text-muted)', fontSize: '1.8rem', fontWeight: 'bold' }}>?</div>
                 )}
@@ -341,21 +350,10 @@ function MemoryMode({ cards }) {
 }
 
 // ----------------------------------------------------
-// 3) TEST MODE (Multiple Choice Test)
+// 3) TEST MODE (Multiple Choice Test with Audio & Voice Variety)
 // ----------------------------------------------------
 function TestMode({ cards }) {
   const [useTTS, setUseTTS] = useState(true);
-
-  // Helper to speak Korean text
-  const speakText = (text) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel(); // Cancel current speaking
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ko-KR';
-    utterance.rate = 0.95; // Clear natural rate
-    window.speechSynthesis.speak(utterance);
-  };
-
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -364,26 +362,23 @@ function TestMode({ cards }) {
   const [isFinished, setIsFinished] = useState(false);
 
   const initTest = () => {
-    // Generate questions for all cards (up to 10 questions to keep it structured)
     const shuffledCards = [...cards].sort(() => 0.5 - Math.random());
     const testSize = Math.min(10, shuffledCards.length);
     const selected = shuffledCards.slice(0, testSize);
 
     const generated = selected.map((card) => {
-      // Find 3 distractors from the rest of the cards
       const otherCards = cards.filter(c => c.term !== card.term);
       const distractors = otherCards
         .map(c => c.term)
-        .filter((value, idx, self) => self.indexOf(value) === idx) // unique terms
+        .filter((value, idx, self) => self.indexOf(value) === idx)
         .sort(() => 0.5 - Math.random())
         .slice(0, 3);
 
-      // In case we don't have enough cards, pad with placeholders
       while (distractors.length < 3) {
         distractors.push("기타 역사적 용어 " + (distractors.length + 1));
       }
 
-      // Mix correct answer with distractors
+      // Fresh shuffle of options for each question
       const options = [card.term, ...distractors].sort(() => 0.5 - Math.random());
       const correctIdx = options.indexOf(card.term);
 
@@ -407,17 +402,18 @@ function TestMode({ cards }) {
     initTest();
   }, [cards]);
 
-  // TTS Trigger on question changes
+  // TTS Voice Randomization trigger on index change
   useEffect(() => {
-    if (useTTS && questions.length > 0 && !isFinished) {
-      speakText(questions[currentIndex].definition);
+    if (useTTS && questions.length > 0 && !isFinished && !isSubmitted) {
+      // Pass currentIndex to speakKoreanText to vary the voice index
+      speakKoreanText(questions[currentIndex].definition, currentIndex);
     }
     return () => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
     };
-  }, [currentIndex, useTTS, questions, isFinished]);
+  }, [currentIndex, useTTS, questions, isFinished, isSubmitted]);
 
   const handleSelect = (idx) => {
     if (isSubmitted) return;
@@ -427,8 +423,17 @@ function TestMode({ cards }) {
   const handleSubmit = () => {
     if (selectedAnswer === null) return;
     setIsSubmitted(true);
-    if (selectedAnswer === questions[currentIndex].correctIdx) {
+    const isCorrect = selectedAnswer === questions[currentIndex].correctIdx;
+
+    if (isCorrect) {
       setScore(prev => prev + 1);
+      playCorrectSound();
+      // Wait 1.2 seconds, then read correct term aloud using randomized voice
+      setTimeout(() => {
+        speakKoreanText(`정답은 ${questions[currentIndex].correctTerm}입니다.`, currentIndex + 1);
+      }, 1000);
+    } else {
+      playIncorrectSound();
     }
   };
 
@@ -471,7 +476,6 @@ function TestMode({ cards }) {
                 onClick={() => setUseTTS(!useTTS)} 
                 className="btn btn-outline"
                 style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', height: '28px', minHeight: 'auto' }}
-                title={useTTS ? "자동 읽기 끄기" : "자동 읽기 켜기"}
               >
                 {useTTS ? <Volume2 size={13} /> : <VolumeX size={13} />}
                 음성 {useTTS ? 'ON' : 'OFF'}
@@ -484,9 +488,8 @@ function TestMode({ cards }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
               <h4 style={{ color: 'var(--primary)', margin: 0, fontSize: '0.9rem' }}>다음 설명이 뜻하는 역사 용어를 고르세요:</h4>
               <button 
-                onClick={() => speakText(currentQ.definition)}
+                onClick={() => speakKoreanText(currentQ.definition, currentIndex)}
                 style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                title="다시 듣기"
               >
                 <Volume2 size={15} />
               </button>
@@ -556,6 +559,212 @@ function TestMode({ cards }) {
                 style={{ width: '100%' }}
               >
                 답안 제출
+              </button>
+            ) : (
+              <button 
+                className="btn btn-secondary" 
+                onClick={handleNext}
+                style={{ width: '100%' }}
+              >
+                {currentIndex + 1 === questions.length ? '결과 보기' : '다음 문제'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// 4) SUBJECTIVE MODE (Subjective Test powered by Gemini)
+// ----------------------------------------------------
+function SubjectiveMode({ cards }) {
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [userAnswer, setUserAnswer] = useState("");
+  const [gradingResult, setGradingResult] = useState(null); // { grade, feedback }
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+  const [history, setHistory] = useState([]); // Array of { term, grade, feedback }
+
+  const initSubjective = () => {
+    const shuffled = [...cards].sort(() => 0.5 - Math.random());
+    const testSize = Math.min(5, shuffled.length); // 5 questions for subjective test
+    const selected = shuffled.slice(0, testSize);
+
+    // Mix question types:
+    // 0: Given definition -> Write term
+    // 1: Given term -> Write definition
+    const generated = selected.map((card, idx) => {
+      const type = idx % 2; 
+      return {
+        type,
+        term: card.term,
+        definition: card.definition,
+        questionText: type === 0 
+          ? `다음 설명이 가리키는 역사 용어는 무엇인지 쓰시오:\n"${card.definition}"`
+          : `역사 용어 [ ${card.term} ]의 역사적 정의 및 뜻을 서술하시오.`,
+        expectedAnswer: type === 0 ? card.term : card.definition
+      };
+    });
+
+    setQuestions(generated);
+    setCurrentIndex(0);
+    setUserAnswer("");
+    setGradingResult(null);
+    setIsLoading(false);
+    setIsFinished(false);
+    setHistory([]);
+  };
+
+  useEffect(() => {
+    initSubjective();
+  }, [cards]);
+
+  const handleSubmit = async () => {
+    if (!userAnswer.trim()) return;
+    setIsLoading(true);
+    const currentQ = questions[currentIndex];
+    
+    const result = await gradeSubjectiveAnswer(
+      currentQ.questionText,
+      currentQ.expectedAnswer,
+      userAnswer
+    );
+
+    setGradingResult(result);
+    setHistory(prev => [...prev, { term: currentQ.term, grade: result.grade, feedback: result.feedback }]);
+    setIsLoading(false);
+    
+    // Play feedback sound based on grade
+    if (result.grade === 'A' || result.grade === 'B') {
+      playCorrectSound();
+    } else {
+      playIncorrectSound();
+    }
+  };
+
+  const handleNext = () => {
+    setUserAnswer("");
+    setGradingResult(null);
+    if (currentIndex + 1 < questions.length) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      setIsFinished(true);
+    }
+  };
+
+  if (questions.length === 0) return null;
+
+  const currentQ = questions[currentIndex];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', width: '100%' }}>
+      {isFinished ? (
+        <div className="glass-card" style={{ width: '100%', maxWidth: '500px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ textAlign: 'center' }}>
+            <Award size={48} style={{ color: 'var(--secondary)', marginBottom: '0.5rem' }} />
+            <h3>서술형 테스트 완료</h3>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {history.map((h, idx) => (
+              <div key={idx} style={{ padding: '1rem', backgroundColor: 'var(--background)', borderRadius: '8px', borderLeft: `4px solid ${h.grade === 'A' ? '#22c55e' : h.grade === 'B' ? '#eab308' : '#ef4444'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <strong style={{ fontSize: '1.05rem' }}>{idx + 1}. {h.term}</strong>
+                  <span style={{
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold',
+                    backgroundColor: h.grade === 'A' ? 'rgba(34, 197, 94, 0.15)' : h.grade === 'B' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    color: h.grade === 'A' ? '#22c55e' : h.grade === 'B' ? '#eab308' : '#ef4444'
+                  }}>
+                    등급: {h.grade}
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{h.feedback}</p>
+              </div>
+            ))}
+          </div>
+
+          <button className="btn btn-primary" onClick={initSubjective} style={{ marginTop: '1rem' }}>
+            다시 도전하기
+          </button>
+        </div>
+      ) : (
+        <div className="glass-card" style={{ width: '100%', maxWidth: '500px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+            <span>서술형 문항: <strong>{currentIndex + 1} / {questions.length}</strong></span>
+          </div>
+
+          <div style={{ padding: '1.25rem', backgroundColor: 'var(--background)', borderRadius: '8px', borderLeft: '4px solid var(--primary)', marginBottom: '1.5rem' }}>
+            <h4 style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>아래 질문을 읽고 답안을 서술하시오:</h4>
+            <p style={{ fontSize: '1.1rem', lineHeight: '1.6', margin: 0, wordBreak: 'keep-all', whiteSpace: 'pre-line' }}>
+              {currentQ.questionText}
+            </p>
+          </div>
+
+          {/* User Input Area */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <textarea
+              value={userAnswer}
+              onChange={(e) => setUserAnswer(e.target.value)}
+              disabled={gradingResult !== null || isLoading}
+              placeholder="여기에 답안을 서술하세요..."
+              style={{
+                width: '100%',
+                height: '110px',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                color: 'var(--text)',
+                fontFamily: 'inherit',
+                fontSize: '1rem',
+                resize: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          {/* Loader or Grading Output */}
+          {isLoading && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem', color: 'var(--secondary)' }}>
+              <RefreshCw className="animate-spin" size={18} />
+              <span>AI 교사가 채점 중입니다... 잠시만 기다려 주세요.</span>
+            </div>
+          )}
+
+          {gradingResult && (
+            <div className="animate-fade-in" style={{ padding: '1.25rem', backgroundColor: 'var(--background)', borderRadius: '8px', borderLeft: `4px solid ${gradingResult.grade === 'A' ? '#22c55e' : gradingResult.grade === 'B' ? '#eab308' : '#ef4444'}`, marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ 
+                  fontWeight: 'bold', 
+                  fontSize: '1.1rem', 
+                  color: gradingResult.grade === 'A' ? '#22c55e' : gradingResult.grade === 'B' ? '#eab308' : '#ef4444'
+                }}>
+                  채점 등급: {gradingResult.grade}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 1rem 0' }}>{gradingResult.feedback}</p>
+              
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', paddingTop: '0.75rem', borderTop: '1px dashed var(--border)' }}>
+                <strong>모범 답안:</strong> {currentQ.expectedAnswer}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            {gradingResult === null ? (
+              <button 
+                className="btn btn-primary" 
+                onClick={handleSubmit} 
+                disabled={!userAnswer.trim() || isLoading}
+                style={{ width: '100%' }}
+              >
+                채점 받기 (Gemini AI)
               </button>
             ) : (
               <button 
