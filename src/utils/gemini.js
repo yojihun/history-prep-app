@@ -49,7 +49,8 @@ JSON 형식으로 "grade" (A, B, C 중 하나)와 한국어로 학생에게 주�
     });
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData?.error?.message || `API error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -57,10 +58,15 @@ JSON 형식으로 "grade" (A, B, C 중 하나)와 한국어로 학생에게 주�
     return JSON.parse(resultText);
   } catch (error) {
     console.error("Gemini grading failed:", error);
-    // Graceful fallback in case of errors or limit hits
+    let errorMsg = "서버 연결 또는 API 호출 문제로 상세 피드백을 가져오지 못했습니다.";
+    if (error.message && error.message.includes("credits are depleted")) {
+      errorMsg = "제미나이 API 키의 크레딧(사용량 선결제 금액)이 모두 소진되었습니다. 구글 AI Studio에서 결제 정보를 확인해 주세요.";
+    } else if (error.message && (error.message.includes("quota") || error.message.includes("429"))) {
+      errorMsg = "API 호출 속도 제한 또는 할당량이 초과되었습니다.";
+    }
     return {
       grade: "B",
-      feedback: "서버 연결 또는 API 호출 문제로 상세 피드백을 가져오지 못했습니다. 학생 스스로 모범 답안과 비교하여 확인해 보세요."
+      feedback: `${errorMsg} 모범 답안과 본인 답안을 비교해 보세요.`
     };
   }
 }
