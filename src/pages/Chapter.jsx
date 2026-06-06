@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, Circle, Volume2, RefreshCw, Award, Check, Aler
 import { chapters, quizzes } from '../data/chapters';
 import FlashcardsSection from '../components/FlashcardsSection';
 import { playCorrectSound, playIncorrectSound } from '../utils/audio';
-import { gradeSubjectiveAnswer, checkLearningObjective } from '../utils/gemini';
+import { gradeSubjectiveAnswer, checkLearningObjective, getObjectiveHint } from '../utils/gemini';
 
 export default function Chapter() {
   const { chapterId } = useParams();
@@ -17,6 +17,9 @@ export default function Chapter() {
   const [selectedObjective, setSelectedObjective] = useState(null);
   const [userNote, setUserNote] = useState("");
   const [objectiveFeedback, setObjectiveFeedback] = useState("");
+  const [hintText, setHintText] = useState("");
+  const [isFetchingHint, setIsFetchingHint] = useState(false);
+  const [hasRequestedHint, setHasRequestedHint] = useState(false);
   const [isCheckingObjective, setIsCheckingObjective] = useState(false);
   const [objectiveNotes, setObjectiveNotes] = useState(() => {
     try {
@@ -42,6 +45,36 @@ export default function Chapter() {
     setSelectedObjective(sub);
     setUserNote(objectiveNotes[sub.id]?.noteText || "");
     setObjectiveFeedback(objectiveNotes[sub.id]?.latestFeedback || "");
+    setHintText(objectiveNotes[sub.id]?.hintText || "");
+    setHasRequestedHint(!!objectiveNotes[sub.id]?.hasRequestedHint);
+  };
+
+  const handleGetHint = async () => {
+    if (hasRequestedHint || isFetchingHint) return;
+    setIsFetchingHint(true);
+    const result = await getObjectiveHint(
+      selectedObjective.objective,
+      {
+        fillInTheBlanks: selectedObjective.fillInTheBlanks,
+        flashcards: selectedObjective.flashcards
+      },
+      userNote
+    );
+    setIsFetchingHint(false);
+    setHintText(result.hint);
+    setHasRequestedHint(true);
+    
+    const newNotes = {
+      ...objectiveNotes,
+      [selectedObjective.id]: {
+        ...objectiveNotes[selectedObjective.id],
+        noteText: userNote,
+        hintText: result.hint,
+        hasRequestedHint: true
+      }
+    };
+    setObjectiveNotes(newNotes);
+    localStorage.setItem(`notes_${chapterId}`, JSON.stringify(newNotes));
   };
 
   const handleCheckObjective = async () => {
@@ -64,7 +97,9 @@ export default function Chapter() {
       ...objectiveNotes,
       [selectedObjective.id]: {
         noteText: userNote,
-        latestFeedback: result.feedback
+        latestFeedback: result.feedback,
+        hintText: hintText,
+        hasRequestedHint: hasRequestedHint
       }
     };
     setObjectiveNotes(newNotes);
@@ -82,6 +117,7 @@ export default function Chapter() {
       playIncorrectSound();
     }
   };
+
 
   return (
     <div className="animate-fade-in">
@@ -356,6 +392,25 @@ export default function Chapter() {
                 </div>
               </div>
 
+              {/* 힌트 표시 영역 */}
+              {hintText && (
+                <div className="animate-fade-in" style={{
+                  padding: '1rem',
+                  backgroundColor: 'rgba(217, 119, 6, 0.08)',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid var(--secondary)',
+                  marginTop: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '1.2rem' }}>💡</span>
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--secondary)' }}>AI 학습 목표 힌트:</strong>
+                  </div>
+                  <p style={{ fontSize: '0.95rem', lineHeight: '1.5', margin: 0, wordBreak: 'keep-all' }}>
+                    {hintText}
+                  </p>
+                </div>
+              )}
+
               {/* 로딩 표시 */}
               {isCheckingObjective && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', color: 'var(--primary)', backgroundColor: 'rgba(30, 58, 138, 0.05)', borderRadius: '8px' }}>
@@ -419,6 +474,8 @@ export default function Chapter() {
                       localStorage.setItem(`notes_${chapterId}`, JSON.stringify(newNotes));
                       setUserNote("");
                       setObjectiveFeedback("");
+                      setHintText("");
+                      setHasRequestedHint(false);
                     }}
                     style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', color: '#ef4444', borderColor: '#ef4444' }}
                     onMouseEnter={(e) => {
@@ -443,14 +500,36 @@ export default function Chapter() {
                   닫기
                 </button>
                 {!completedObjectives.has(selectedObjective.id) && (
-                  <button 
-                    className="btn btn-primary"
-                    onClick={handleCheckObjective}
-                    disabled={!userNote.trim() || isCheckingObjective}
-                    style={{ padding: '0.6rem 1.5rem' }}
-                  >
-                    제출하고 채점받기
-                  </button>
+                  <>
+                    <button 
+                      className="btn btn-outline"
+                      onClick={handleGetHint}
+                      disabled={hasRequestedHint || isFetchingHint || isCheckingObjective}
+                      style={{ 
+                        padding: '0.6rem 1.2rem',
+                        borderColor: 'var(--secondary)',
+                        color: 'var(--secondary)',
+                        backgroundColor: hasRequestedHint ? 'rgba(0, 0, 0, 0.05)' : 'transparent'
+                      }}
+                    >
+                      {isFetchingHint ? (
+                        <>
+                          <RefreshCw className="animate-spin" size={16} />
+                          힌트 생성 중...
+                        </>
+                      ) : (
+                        hasRequestedHint ? "힌트 확인 완료" : "💡 AI 힌트 (1회)"
+                      )}
+                    </button>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={handleCheckObjective}
+                      disabled={!userNote.trim() || isCheckingObjective || isFetchingHint}
+                      style={{ padding: '0.6rem 1.5rem' }}
+                    >
+                      제출하고 채점받기
+                    </button>
+                  </>
                 )}
               </div>
             </div>
