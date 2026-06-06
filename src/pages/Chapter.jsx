@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Circle } from 'lucide-react';
 import { chapters, quizzes } from '../data/chapters';
+import FlashcardsSection from '../components/FlashcardsSection';
 
 export default function Chapter() {
   const { chapterId } = useParams();
   const chapter = chapters.find(c => c.id === chapterId);
   const chapterQuizzes = quizzes.filter(q => q.chapterId === chapterId);
   
-  const [activeTab, setActiveTab] = useState('objectives'); // 'objectives' | 'blanks' | 'quiz'
+  const [activeTab, setActiveTab] = useState('objectives'); // 'objectives' | 'blanks' | 'quiz' | 'flashcards'
   const [completedObjectives, setCompletedObjectives] = useState(new Set());
 
   if (!chapter) return <div>Chapter not found</div>;
@@ -43,6 +44,12 @@ export default function Chapter() {
             onClick={() => setActiveTab('blanks')}
           >
             빈칸 채우기 (개념 학습)
+          </button>
+          <button 
+            className={`btn ${activeTab === 'flashcards' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('flashcards')}
+          >
+            역사 카드 (용어 정복)
           </button>
           <button 
             className={`btn ${activeTab === 'quiz' ? 'btn-primary' : 'btn-outline'}`}
@@ -115,6 +122,10 @@ export default function Chapter() {
             </div>
           ))}
         </div>
+      )}
+
+      {activeTab === 'flashcards' && (
+        <FlashcardsSection chapter={chapter} />
       )}
 
       {activeTab === 'quiz' && (
