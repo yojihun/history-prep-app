@@ -14,12 +14,12 @@ export default function FlashcardsSection({ chapter }) {
     )
   );
 
-  const [mode, setMode] = useState('study'); // 'study' | 'memory' | 'test' | 'subjective'
+  const [mode, setMode] = useState('study'); // 'study' | 'test' | 'subjective'
 
   if (allCards.length === 0) {
     return (
       <div className="glass-card" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-        <p style={{ color: 'var(--text-muted)' }}>이 단원에는 등록된 역사 카드가 없습니다.</p>
+        <p style={{ color: 'var(--text-muted)' }}>이 단원에는 등록된 과학 카드가 없습니다.</p>
       </div>
     );
   }
@@ -35,14 +35,6 @@ export default function FlashcardsSection({ chapter }) {
         >
           <BookOpen size={16} />
           카드 뒤집기
-        </button>
-        <button 
-          className={`btn ${mode === 'memory' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setMode('memory')}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
-        >
-          <Layers size={16} />
-          메모리 매칭
         </button>
         <button 
           className={`btn ${mode === 'test' ? 'btn-primary' : 'btn-outline'}`}
@@ -64,7 +56,6 @@ export default function FlashcardsSection({ chapter }) {
 
       {/* Mode Renderers */}
       {mode === 'study' && <StudyMode cards={allCards} />}
-      {mode === 'memory' && <MemoryMode cards={allCards} />}
       {mode === 'test' && <TestMode cards={allCards} />}
       {mode === 'subjective' && <SubjectiveMode cards={allCards} />}
     </div>
@@ -359,7 +350,7 @@ function TestMode({ cards }) {
         .slice(0, 3);
 
       while (distractors.length < 3) {
-        distractors.push("기타 역사적 용어 " + (distractors.length + 1));
+        distractors.push("기타 과학 용어 " + (distractors.length + 1));
       }
 
       // Fresh shuffle of options for each question
@@ -415,6 +406,38 @@ function TestMode({ cards }) {
       }, 900);
     } else {
       playIncorrectSound();
+      
+      // Save incorrect note to localStorage
+      try {
+        const nickname = localStorage.getItem('current_nickname') || '도담';
+        const prefix = nickname ? `${nickname}_` : '';
+        const saved = localStorage.getItem(`${prefix}incorrect_notes`);
+        let currentList = [];
+        try {
+          const parsed = saved ? JSON.parse(saved) : [];
+          currentList = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          currentList = [];
+        }
+        
+        // Match the structural attributes to MCQs
+        if (!currentList.some(item => item && item.question === questions[currentIndex].definition)) {
+          const newNote = {
+            id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            question: questions[currentIndex].definition, // Definition acts as the question
+            options: questions[currentIndex].options,
+            answer: questions[currentIndex].correctIdx,
+            explanation: `이 카드 용어는 [${questions[currentIndex].correctTerm}]입니다.\n뜻: ${questions[currentIndex].definition}`,
+            correctCount: 0,
+            step: 'summary',
+            timestamp: Date.now()
+          };
+          const updatedList = [newNote, ...currentList];
+          localStorage.setItem(`${prefix}incorrect_notes`, JSON.stringify(updatedList));
+        }
+      } catch (err) {
+        console.error("Failed to save flashcard test incorrect note:", err);
+      }
     }
   };
 
@@ -467,7 +490,7 @@ function TestMode({ cards }) {
 
           <div style={{ padding: '1.25rem', backgroundColor: 'var(--background)', borderRadius: '8px', borderLeft: '4px solid var(--primary)', marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-              <h4 style={{ color: 'var(--primary)', margin: 0, fontSize: '0.9rem' }}>다음 설명이 뜻하는 역사 용어를 고르세요:</h4>
+              <h4 style={{ color: 'var(--primary)', margin: 0, fontSize: '0.9rem' }}>다음 설명이 뜻하는 과학 용어를 고르세요:</h4>
               <button 
                 onClick={() => playStaticTTS(currentQ.definition)}
                 style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
@@ -574,19 +597,12 @@ function SubjectiveMode({ cards }) {
     const testSize = Math.min(5, shuffled.length); // 5 questions for subjective test
     const selected = shuffled.slice(0, testSize);
 
-    // Mix question types:
-    // 0: Given definition -> Write term
-    // 1: Given term -> Write definition
-    const generated = selected.map((card, idx) => {
-      const type = idx % 2; 
+    const generated = selected.map((card) => {
       return {
-        type,
         term: card.term,
         definition: card.definition,
-        questionText: type === 0 
-          ? `다음 설명이 가리키는 역사 용어는 무엇인지 쓰시오:\n"${card.definition}"`
-          : `역사 용어 [ ${card.term} ]의 역사적 정의 및 뜻을 서술하시오.`,
-        expectedAnswer: type === 0 ? card.term : card.definition
+        questionText: `과학 용어 [ ${card.term} ]의 과학적 정의 및 뜻을 서술하시오.`,
+        expectedAnswer: card.definition
       };
     });
 

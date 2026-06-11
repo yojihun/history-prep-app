@@ -278,101 +278,328 @@ export function stopStaticTTS() {
   }
 }
 
-// Play a triumphant arpeggio for Level Ups
-export function playLevelUpSound() {
+// Play a rising synth arpeggio when XP goes up
+export function playXpSound() {
   try {
     const ctx = getAudioContext();
     const now = ctx.currentTime;
-    const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; // C4, E4, G4, C5, E5, G5, C6
+    // Fast rising pentatonic scale
+    const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C4, D4, E4, G4, A4, C5
     
-    notes.forEach((freq, index) => {
+    scale.forEach((freq, index) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now + index * 0.08);
-      
-      gain.gain.setValueAtTime(0.0, now + index * 0.08);
-      gain.gain.linearRampToValueAtTime(0.12, now + index * 0.08 + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.5);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.start(now + index * 0.08);
-      osc.stop(now + index * 0.08 + 0.5);
-    });
-  } catch (e) {
-    console.error("Audio error:", e);
-  }
-}
-
-// Play a sparkling sound for earning gems
-export function playGemRewardSound() {
-  try {
-    const ctx = getAudioContext();
-    const now = ctx.currentTime;
-    const notes = [987.77, 1318.51, 1567.98, 1975.53]; // B5, E6, G6, B6
-    
-    notes.forEach((freq, index) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, now + index * 0.05);
       
       gain.gain.setValueAtTime(0.0, now + index * 0.05);
-      gain.gain.linearRampToValueAtTime(0.1, now + index * 0.05 + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.05 + 0.3);
+      gain.gain.linearRampToValueAtTime(0.08, now + index * 0.05 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.05 + 0.15);
       
       osc.connect(gain);
       gain.connect(ctx.destination);
       
       osc.start(now + index * 0.05);
-      osc.stop(now + index * 0.05 + 0.3);
+      osc.stop(now + index * 0.05 + 0.15);
     });
   } catch (e) {
     console.error("Audio error:", e);
   }
 }
 
-// Play a short brassy fanfare for milestones
+// Play a loud celebratory level-up fanfare
+export function playLevelUpSound() {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+
+    // We play a grand ascending arpeggio with fat sawtooth oscillators
+    const notes = [130.81, 164.81, 196.00, 261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; // Ascending C major notes
+    notes.forEach((freq, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = index % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, now + index * 0.08);
+      
+      gain.gain.setValueAtTime(0.0, now + index * 0.08);
+      gain.gain.linearRampToValueAtTime(0.12, now + index * 0.08 + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.6);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(now + index * 0.08);
+      osc.stop(now + index * 0.08 + 0.6);
+    });
+
+    // Sustained high triumphant chord at the end
+    const chord = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    chord.forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + 0.8);
+      // add minor vibrato
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 6; // 6Hz
+      lfoGain.gain.value = 4; // 4Hz detune
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+      
+      gain.gain.setValueAtTime(0.0, now + 0.8);
+      gain.gain.linearRampToValueAtTime(0.15, now + 0.9);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      lfo.start(now + 0.8);
+      osc.start(now + 0.8);
+      osc.stop(now + 2.2);
+      lfo.stop(now + 2.2);
+    });
+
+  } catch (e) {
+    console.error("Audio error:", e);
+  }
+}
+
+// Play a bright magical sparkling sound for earning gems
+export function playGemSound() {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    
+    // Play multiple quick high-pitched notes
+    const notes = [880.00, 1046.50, 1318.51, 1567.98, 2093.00]; // A5, C6, E6, G6, C7
+    notes.forEach((freq, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + index * 0.04);
+      
+      gain.gain.setValueAtTime(0.0, now + index * 0.04);
+      gain.gain.linearRampToValueAtTime(0.12, now + index * 0.04 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.04 + 0.25);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(now + index * 0.04);
+      osc.stop(now + index * 0.04 + 0.25);
+    });
+  } catch (e) {
+    console.error("Audio error:", e);
+  }
+}
+
+// Alias playGemRewardSound to playGemSound for convenience
+export function playGemRewardSound() {
+  playGemSound();
+}
+
+// Play a triumphant milestone/museum unlock fanfare
 export function playMilestoneFanfare() {
   try {
     const ctx = getAudioContext();
     const now = ctx.currentTime;
     
-    // First chord (C major triad)
-    const chord1 = [392.00, 523.25, 659.25]; // G4, C5, E5
-    chord1.forEach(freq => {
-      const osc = ctx.createOscillator();
+    // Imperial/Royal brass fanfare (C-G-C-E-G progression with twin voice/detuning)
+    const notes = [
+      { f: 261.63, t: 0.0 }, // C4
+      { f: 392.00, t: 0.15 }, // G4
+      { f: 523.25, t: 0.3 }, // C5
+      { f: 659.25, t: 0.45 }, // E5
+      { f: 783.99, t: 0.6 }  // G5
+    ];
+    
+    notes.forEach((item) => {
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      osc.connect(gain);
+      
+      osc1.type = 'triangle';
+      osc2.type = 'sine';
+      
+      osc1.frequency.setValueAtTime(item.f, now + item.t);
+      osc2.frequency.setValueAtTime(item.f * 1.005, now + item.t); // slightly detuned for chorus effect
+      
+      gain.gain.setValueAtTime(0.0, now + item.t);
+      gain.gain.linearRampToValueAtTime(0.12, now + item.t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + item.t + 1.2);
+      
+      osc1.connect(gain);
+      osc2.connect(gain);
       gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.35);
+      
+      osc1.start(now + item.t);
+      osc2.start(now + item.t);
+      osc1.stop(now + item.t + 1.2);
+      osc2.stop(now + item.t + 1.2);
     });
-
-    // Second chord (G major triad)
-    const chord2 = [493.88, 587.33, 783.99]; // B4, D5, G5
-    chord2.forEach(freq => {
+    
+    // Loud final chord
+    const finalChord = [523.25, 783.99, 1046.50]; // C5, G5, C6
+    finalChord.forEach((freq) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, now + 0.35);
-      gain.gain.setValueAtTime(0.08, now + 0.35);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + 0.75);
+      
+      gain.gain.setValueAtTime(0.0, now + 0.75);
+      gain.gain.linearRampToValueAtTime(0.15, now + 0.85);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+      
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start(now + 0.35);
-      osc.stop(now + 0.7);
+      
+      osc.start(now + 0.75);
+      osc.stop(now + 2.0);
     });
   } catch (e) {
     console.error("Audio error:", e);
   }
 }
+
+// Play a friendly pop chime sound when a mascot speech bubble opens
+export function playMascotNotifySound() {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, now); // A4
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+    
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } catch (e) {
+    console.error("Audio error:", e);
+  }
+}
+
+// Mascot ElevenLabs API Integration
+import { MASCOT_LINES } from '../data/mascotFeedback';
+
+const ELEVEN_LABS_API_KEY = import.meta.env.VITE_ELEVEN_LABS_API_KEY || "563bad9473bc83070dd087ae30070acef956c37af7ea667d2b38466bd7852011";
+
+// ElevenLabs Voice IDs (Verified available in user account)
+const VOICE_IDS = {
+  einstein: "nPczCjzI2devNBz1zQrb", // Brian (Deep, Resonant, Comforting)
+  curie: "hpp4J3VqNfWAUOO0d1Us", // Bella (Professional, Bright, Warm)
+  galileo: "pqHfZKP75CvOlQylNhV4" // Bill (Wise, Mature, Balanced)
+};
+
+let elevenAudio = null;
+
+export async function playMascotSpeech(lineId) {
+  // Stop any playing static TTS or mascot speech
+  stopStaticTTS();
+  if (elevenAudio) {
+    elevenAudio.pause();
+    elevenAudio = null;
+  }
+
+  // Find the text for this lineId in MASCOT_LINES
+  let text = "";
+  const parts = lineId.split('_');
+  const mascotKey = parts[0]; // 'einstein', 'curie', 'galileo'
+  const actionChar = parts[1] ? parts[1][0] : ''; // 's', 'f', 'h'
+  const category = actionChar === 's' ? 'success' : (actionChar === 'f' ? 'fail' : 'hint');
+
+  if (MASCOT_LINES[mascotKey] && MASCOT_LINES[mascotKey][category]) {
+    const found = MASCOT_LINES[mascotKey][category].find(item => item.id === lineId);
+    if (found) {
+      text = found.text;
+    }
+  }
+
+  if (!text) return;
+
+  // Try ElevenLabs API
+  try {
+    const voiceId = VOICE_IDS[mascotKey] || VOICE_IDS.einstein;
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "xi-api-key": ELEVEN_LABS_API_KEY
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: {
+          stability: 0.75,
+          similarity_boost: 0.75
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(`ElevenLabs status: ${response.status} - ${JSON.stringify(errBody)}`);
+    }
+
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    elevenAudio = audio;
+    await audio.play();
+    return;
+  } catch (error) {
+    console.warn("ElevenLabs TTS failed, falling back to Web Speech API:", error);
+  }
+
+  // Fallback 1: Speak using Web Speech API in English if available
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    try {
+      window.speechSynthesis.cancel(); // Cancel any ongoing speech
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      
+      // Custom voice profiling based on character
+      if (mascotKey === 'einstein') {
+        utterance.pitch = 0.85;
+        utterance.rate = 0.9;
+      } else if (mascotKey === 'curie') {
+        utterance.pitch = 1.1;
+        utterance.rate = 0.95;
+      } else if (mascotKey === 'galileo') {
+        utterance.pitch = 0.95;
+        utterance.rate = 1.0;
+      }
+      
+      window.speechSynthesis.speak(utterance);
+      return;
+    } catch (e) {
+      console.warn("SpeechSynthesis failed, falling back to audio file:", e);
+    }
+  }
+
+  // Fallback 2: Fallback to local pre-recorded audio file
+  const audioUrl = `/audio/${lineId}.mp3`;
+  const audio = new Audio(audioUrl);
+  elevenAudio = audio;
+  
+  audio.play().catch(error => {
+    console.error("Failed to play mascot speech offline audio:", audioUrl, error);
+  });
+}
+
+
+
 

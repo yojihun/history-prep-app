@@ -12,7 +12,7 @@ export default function Chapter({ nickname, addXp, addGems, triggerMascot }) {
   const chapterQuizzes = quizzes.filter(q => q.chapterId === chapterId);
   const subjectiveQuizzes = chapter ? (chapter.subjectiveQuizzes || []) : [];
   
-  const [activeTab, setActiveTab] = useState('objectives'); // 'objectives' | 'blanks' | 'flashcards' | 'quiz' | 'subjective_quiz'
+  const [activeTab, setActiveTab] = useState('flashcards'); // 'flashcards' | 'blanks' | 'quiz' | 'subjective_quiz' | 'objectives'
   
   const [selectedObjective, setSelectedObjective] = useState(null);
   const [userNote, setUserNote] = useState("");
@@ -85,7 +85,7 @@ export default function Chapter({ nickname, addXp, addGems, triggerMascot }) {
     localStorage.setItem(`${prefix}notes_${chapterId}`, JSON.stringify(newNotes));
     
     // Play a friendly soft hint sound or minor hint trigger
-    triggerMascot('scholar', '힌트가 도착했소! 찬찬히 읽어보시오.', '생각을 보완해봅시다');
+    triggerMascot('hint', '생각을 보완해봅시다');
   };
 
   const handleCheckObjective = async () => {
@@ -120,7 +120,7 @@ export default function Chapter({ nickname, addXp, addGems, triggerMascot }) {
       playCorrectSound();
       addXp(50);
       addGems(2);
-      triggerMascot('king', '학업의 근간이 튼튼하구나! 훌륭하다.', '+50 XP / 💎 +2');
+      triggerMascot('success', '+50 XP / 💎 +2');
       setCompletedObjectives(prev => {
         const next = new Set(prev);
         next.add(selectedObjective.id);
@@ -129,7 +129,7 @@ export default function Chapter({ nickname, addXp, addGems, triggerMascot }) {
       });
     } else {
       playIncorrectSound();
-      triggerMascot('scholar', '개념이 일부 누락되었구려. 피드백을 보시오.', '힌트를 참고해 보충하세요');
+      triggerMascot('fail', '힌트를 참고해 보충하세요');
     }
   };
 
@@ -137,43 +137,48 @@ export default function Chapter({ nickname, addXp, addGems, triggerMascot }) {
 
   return (
     <div className="animate-fade-in">
-      <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+      <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
         <ArrowLeft size={20} />
         목록으로 돌아가기
       </Link>
       
-      <div className="glass-card" style={{ marginBottom: '2rem' }}>
-        <h2>{chapter.title}</h2>
-        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="glass-card" style={{ marginBottom: '0.75rem', padding: '1rem' }}>
+        <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>{chapter.title}</h2>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
           <button 
-            className={`btn ${activeTab === 'objectives' ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => setActiveTab('objectives')}
+            className={`btn ${activeTab === 'flashcards' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('flashcards')}
+            style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
           >
-            학습 목표
+            과학 카드
           </button>
           <button 
             className={`btn ${activeTab === 'blanks' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setActiveTab('blanks')}
+            style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
           >
             빈칸 채우기
           </button>
           <button 
-            className={`btn ${activeTab === 'flashcards' ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => setActiveTab('flashcards')}
-          >
-            역사 카드 (용어 정복)
-          </button>
-          <button 
             className={`btn ${activeTab === 'quiz' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setActiveTab('quiz')}
+            style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
           >
-            실전 퀴즈 ({chapterQuizzes.length}문제)
+            실전 퀴즈
           </button>
           <button 
             className={`btn ${activeTab === 'subjective_quiz' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setActiveTab('subjective_quiz')}
+            style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
           >
-            서술형 퀴즈 ({subjectiveQuizzes.length}문제)
+            서술형 퀴즈
+          </button>
+          <button 
+            className={`btn ${activeTab === 'objectives' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('objectives')}
+            style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
+          >
+            학습 목표
           </button>
         </div>
       </div>
@@ -647,10 +652,42 @@ function QuizMode({ chapterQuizzes, addXp, triggerMascot }) {
       setScore(prev => prev + 1);
       playCorrectSound();
       addXp(15);
-      triggerMascot('general', '정답일세! 기세가 조조와 같구려!', '+15 XP');
+      triggerMascot('success', '+15 XP');
     } else {
       playIncorrectSound();
-      triggerMascot('scholar', '아깝소. 다시 차분하게 복기해 보시오.', '해설을 참고하세요');
+      triggerMascot('fail', '오답노트에 추가되었습니다. 해설을 참고하세요');
+
+      // Add to incorrect_notes in localStorage
+      try {
+        const prefix = nickname ? `${nickname}_` : '';
+        const saved = localStorage.getItem(`${prefix}incorrect_notes`);
+        let currentList = [];
+        try {
+          const parsed = saved ? JSON.parse(saved) : [];
+          currentList = Array.isArray(parsed) ? parsed : [];
+        } catch {
+          currentList = [];
+        }
+        
+        // Check if question already exists in incorrect notes to avoid duplicate
+        if (!currentList.some(item => item && item.question === currentQ.question)) {
+          const newNote = {
+            id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            question: currentQ.question,
+            options: currentQ.options,
+            answer: currentQ.answer,
+            explanation: currentQ.explanation,
+            correctCount: 0,
+            step: 'summary',
+            timestamp: Date.now()
+          };
+          // Prepend to list (recent on top)
+          const updatedList = [newNote, ...currentList];
+          localStorage.setItem(`${prefix}incorrect_notes`, JSON.stringify(updatedList));
+        }
+      } catch (err) {
+        console.error("Failed to save incorrect note:", err);
+      }
     }
   };
 
@@ -823,10 +860,10 @@ function SubjectiveQuizMode({ subjectiveQuizzes, addXp, addGems, triggerMascot }
       playCorrectSound();
       addXp(30);
       addGems(1);
-      triggerMascot('scholar', '문장이 유려하고 논리가 바르오!', '+30 XP / 💎 +1');
+      triggerMascot('success', '+30 XP / 💎 +1');
     } else {
       playIncorrectSound();
-      triggerMascot('king', '아직 정밀함이 부족하오. 힘내시게!', '다시 도전해 보시오');
+      triggerMascot('fail', '다시 도전해 보시오');
     }
   };
 

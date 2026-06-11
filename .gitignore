@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Custom ignores for large PDF and scripts
+*.pdf
+scratch/
+extract_text_all.py
+extracted_text.txt
+inspect_pdf.py

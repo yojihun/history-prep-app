@@ -2,16 +2,19 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Chapter from './pages/Chapter';
-import { playLevelUpSound, playGemRewardSound, playMilestoneFanfare } from './utils/audio';
+import IncorrectNotes from './pages/IncorrectNotes';
+import { playLevelUpSound, playGemRewardSound, playMilestoneFanfare, playXpSound, playMascotNotifySound, playMascotSpeech } from './utils/audio';
+import { MASCOT_LINES } from './data/mascotFeedback';
 
 export const SHOP_ITEMS = [
-  { id: 'pottery', name: '빗살무늬 토기', cost: 3, image: '/images/pottery.png', desc: '신석기 시대 식량 저장과 조리에 사용된 대표적 토기입니다.' },
-  { id: 'mummy', name: '이집트 미라', cost: 4, image: '/images/mummy.png', desc: '고대 이집트의 내세 신앙과 영혼 불멸관을 보여주는 유물입니다.' },
-  { id: 'terracotta', name: '병마용 병사', cost: 5, image: '/images/terracotta.png', desc: '진시황릉 인근에 묻힌 강력한 황제 권력의 군사 모형입니다.' },
-  { id: 'changan', name: '장안성 전경', cost: 4, image: '/images/changan.png', desc: '국제적이고 개방적이었던 당나라의 계획도시 수도 전경입니다.' },
-  { id: 'sillok', name: '조선왕조실록', cost: 6, image: '/images/sillok.png', desc: '조선 시대의 대표적 사료이자 유네스코 세계기록유산입니다.' },
-  { id: 'forbidden', name: '자금성 모형', cost: 6, image: '/images/forbidden_city.png', desc: '명·청 시대 황제 독재 권력의 위엄을 상징하는 거대 궁궐입니다.' }
+  { id: 'prism', name: '분광 프리즘', cost: 3, image: '/images/pottery.png', desc: '뉴턴이 빛의 분산을 증명할 때 사용한 유리 프리즘 모형입니다.' },
+  { id: 'microscope', name: '복합 현미경', cost: 4, image: '/images/mummy.png', desc: '세포를 최초로 관찰하는 데 사용한 고전적 현미경 모형입니다.' },
+  { id: 'telescope', name: '갈릴레이 망원경', cost: 5, image: '/images/terracotta.png', desc: '목성의 위성들을 관찰할 때 사용했던 유서 깊은 망원경입니다.' },
+  { id: 'magnet', name: 'U자형 자석', cost: 4, image: '/images/changan.png', desc: '자기장의 분포와 세기를 시각화하여 관찰하는 교육용 자석입니다.' },
+  { id: 'beaker', name: '비커 세트', cost: 6, image: '/images/sillok.png', desc: '액체의 부피 측정 및 용해 실험 시 필수적인 연구 장비입니다.' },
+  { id: 'periodic', name: '원소 주기율표', cost: 6, image: '/images/forbidden_city.png', desc: '원소들을 성질에 따라 체계적으로 분류한 현대 화학의 지도입니다.' }
 ];
+
 
 function App() {
   const [nickname, setNickname] = useState(() => {
@@ -58,6 +61,8 @@ function App() {
           setLevelUpMessage(`레벨 업! Level ${nextLevel} 달성! 🎉`);
           playLevelUpSound();
           setTriggerLevelUp(true);
+        } else {
+          playXpSound();
         }
         return nextLevel;
       });
@@ -92,18 +97,32 @@ function App() {
     });
   };
 
-  const triggerMascot = (type, text, subtext) => {
+  const triggerMascot = (category, subtext) => {
+    const mascotTypes = ['einstein', 'curie', 'galileo'];
+    const randomMascot = mascotTypes[Math.floor(Math.random() * mascotTypes.length)];
+    
+    const lines = MASCOT_LINES[randomMascot]?.[category] || [];
+    if (lines.length === 0) return;
+    
+    const randomLine = lines[Math.floor(Math.random() * lines.length)];
+    
     const mascots = {
-      king: { name: '세종 바나나 대왕', image: '/images/king_banana.png' },
-      general: { name: '이순신 바나나 장군', image: '/images/general_banana.png' },
-      scholar: { name: '바나나 선비', image: '/images/scholar_banana.png' }
+      einstein: { name: 'Albert Einstein', image: '/images/einstein.png' },
+      curie: { name: 'Marie Curie', image: '/images/curie.png' },
+      galileo: { name: 'Galileo Galilei', image: '/images/galileo.png' }
     };
     
     setMascotBubble({
-      ...mascots[type],
-      text,
-      subtext
+      ...mascots[randomMascot],
+      text: randomLine.text,
+      subtext: subtext
     });
+    
+    // Play character notification sound
+    playMascotNotifySound();
+    
+    // Play character speech offline locally
+    playMascotSpeech(randomLine.id);
     
     // Auto hide after 3.8 seconds
     setTimeout(() => {
@@ -114,8 +133,21 @@ function App() {
   return (
     <Router>
       <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-        <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <h1 style={{ fontSize: '1.8rem', margin: 0 }}>시흥은행중학교 2학년 1학기 2차 시험 - 역사</h1>
+        <header style={{
+          marginBottom: '2rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          padding: '1rem 1.5rem',
+          borderRadius: '16px',
+          background: 'linear-gradient(135deg, hsla(270, 95%, 68%, 0.12) 0%, hsla(180, 100%, 45%, 0.08) 100%)',
+          borderBottom: '2px solid var(--primary)',
+          boxShadow: 'var(--shadow-md)',
+          backdropFilter: 'blur(16px)'
+        }}>
+          <h1 style={{ fontSize: '1.35rem', margin: 0 }}>중학교 2학년 과학 2차 시험대비</h1>
           
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {/* 레벨 & 보석 정보 표시 */}
@@ -198,10 +230,18 @@ function App() {
                 triggerMascot={triggerMascot}
               />
             } />
+            <Route path="/incorrect-notes" element={
+              <IncorrectNotes 
+                nickname={nickname}
+                addXp={addXp}
+                addGems={addGems}
+                triggerMascot={triggerMascot}
+              />
+            } />
           </Routes>
         </main>
         
-        <footer style={{ marginTop: '4rem', padding: '2rem 0 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.95rem', borderTop: '1px solid var(--border)' }}>
+        <footer style={{ marginTop: '1.5rem', padding: '1rem 0 0.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', borderTop: '1px solid var(--border)' }}>
           <p>created by Daddy.Dodam.Kim 2026. 6. 5.</p>
         </footer>
 
@@ -235,7 +275,6 @@ function App() {
                 height: '120px',
                 borderRadius: '50%',
                 overflow: 'hidden',
-                backgroundColor: 'rgba(217, 119, 6, 0.1)',
                 border: '3px solid var(--secondary)',
                 display: 'flex',
                 alignItems: 'center',
@@ -243,8 +282,8 @@ function App() {
                 boxShadow: '0 0 20px var(--secondary)'
               }}>
                 <img 
-                  src="/images/king_banana.png" 
-                  alt="King Sejong Banana" 
+                  src="/images/einstein.png" 
+                  alt="Einstein Mascot" 
                   style={{ width: '90px', height: '90px', objectFit: 'contain' }}
                 />
               </div>
@@ -252,7 +291,7 @@ function App() {
               <h2 style={{ fontSize: '1.75rem', color: 'var(--secondary)', margin: 0 }}>🎉 LEVEL UP! 🎉</h2>
               <h3 style={{ margin: 0, fontSize: '1.4rem' }}>{levelUpMessage}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6', margin: 0 }}>
-                "경의 학업 열정이 대단하구려! 학식이 날로 정진하여 기쁘기 그지없소. 내 특별히 황실의 보물고를 열어줄 테니 보석으로 귀한 유물들을 수집해 보시게나!"
+                "Outstanding progress! Your dedication to scientific inquiry has unlocked new advanced equipment in the laboratory store. Use your gems to inspect them!"
               </p>
 
               <button 
@@ -260,7 +299,7 @@ function App() {
                 style={{ width: '100%', padding: '0.85rem', marginTop: '1rem', fontSize: '1.05rem' }}
                 onClick={() => setTriggerLevelUp(false)}
               >
-                영광입니다! (보물고 확인)
+                Let's inspect! (실험실 확인)
               </button>
             </div>
           </div>
@@ -270,67 +309,65 @@ function App() {
         {mascotBubble && (
           <div style={{
             position: 'fixed',
-            bottom: '2rem',
-            right: '2rem',
-            zIndex: 1500,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 1900,
             display: 'flex',
-            alignItems: 'flex-end',
-            gap: '1rem',
-            animation: 'fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(5px)',
+            animation: 'fadeIn 0.25s ease-out'
           }}>
-            {/* 말풍선 */}
-            <div className="glass-card" style={{
-              maxWidth: '260px',
-              padding: '0.85rem 1.1rem',
-              borderRadius: '16px',
-              borderBottomRightRadius: '2px',
-              backgroundColor: 'var(--surface)',
-              border: '1px solid var(--border)',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
-              position: 'relative'
-            }}>
-              <div style={{
-                position: 'absolute',
-                bottom: '10px',
-                right: '-8px',
-                width: '16px',
-                height: '16px',
-                backgroundColor: 'var(--surface)',
-                borderRight: '1px solid var(--border)',
-                borderBottom: '1px solid var(--border)',
-                transform: 'rotate(-45deg)',
-                zIndex: -1
-              }} />
-              <strong style={{ fontSize: '0.75rem', color: 'var(--primary)', display: 'block', marginBottom: '0.25rem' }}>
-                👤 {mascotBubble.name}
-              </strong>
-              <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.92rem', fontWeight: 'bold', lineHeight: '1.4', wordBreak: 'keep-all' }}>
-                "{mascotBubble.text}"
-              </p>
-              {mascotBubble.subtext && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: 'bold' }}>
-                  {mascotBubble.subtext}
-                </span>
-              )}
-            </div>
-
-            {/* 캐릭터 이미지 */}
-            <div style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              border: '2px solid var(--primary)',
+            <div className="mascot-speaking" style={{
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 5px 15px rgba(0,0,0,0.1)'
+              gap: '1rem',
+              maxWidth: '600px',
+              width: '95%',
+              textAlign: 'center'
             }}>
-              <img 
-                src={mascotBubble.image} 
-                alt={mascotBubble.name}
-                style={{ width: '68px', height: '68px', objectFit: 'contain' }}
-              />
+              {/* 캐릭터 이미지 (배경 투명하게 마스코트만 부각 - 4배 크기) */}
+              <div style={{
+                width: '350px',
+                height: '350px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                filter: 'drop-shadow(0 15px 30px rgba(0, 0, 0, 0.45))'
+              }}>
+                <img 
+                  src={mascotBubble.image} 
+                  alt={mascotBubble.name}
+                  style={{ width: '320px', height: '320px', objectFit: 'contain' }}
+                />
+              </div>
+
+              {/* 말풍선 */}
+              <div className="glass-card" style={{
+                padding: '1.25rem 1.75rem',
+                borderRadius: '24px',
+                backgroundColor: 'var(--surface)',
+                border: '2px solid var(--primary)',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.35)',
+                margin: 0
+              }}>
+                <strong style={{ fontSize: '0.85rem', color: 'var(--primary)', display: 'block', marginBottom: '0.5rem' }}>
+                  👤 {mascotBubble.name}
+                </strong>
+                <p style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 'bold', lineHeight: '1.5', wordBreak: 'keep-all', color: 'var(--text)' }}>
+                  "{mascotBubble.text}"
+                </p>
+                {mascotBubble.subtext && (
+                  <span style={{ fontSize: '0.95rem', color: 'var(--secondary)', fontWeight: 'bold', display: 'block', marginTop: '0.5rem' }}>
+                    {mascotBubble.subtext}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Award, Sparkles } from 'lucide-react';
 import { chapters } from '../data/chapters';
-import Timeline from '../components/Timeline';
 import { SHOP_ITEMS } from '../App';
 
-export default function Dashboard({ level, xp, gems, unlockedItems, deductGems, unlockItem }) {
+export default function Dashboard({ nickname, level, xp, gems, unlockedItems, deductGems, unlockItem }) {
   const [activeTab, setActiveTab] = useState('chapters'); // 'chapters' | 'museum'
 
   const handleBuyItem = (item) => {
@@ -15,12 +14,22 @@ export default function Dashboard({ level, xp, gems, unlockedItems, deductGems, 
     }
   };
 
+  // Load incorrect notes count from localStorage
+  const prefix = nickname ? `${nickname}_` : '';
+  let incorrectCount = 0;
+  try {
+    const savedNotes = localStorage.getItem(`${prefix}incorrect_notes`);
+    const parsed = savedNotes ? JSON.parse(savedNotes) : [];
+    incorrectCount = Array.isArray(parsed) ? parsed.length : 0;
+  } catch (e) {
+    incorrectCount = 0;
+  }
+
   return (
     <div className="animate-fade-in">
-      <Timeline />
 
       {/* 대시보드 탭 헤더 */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', flexWrap: 'wrap' }}>
         <button 
           onClick={() => setActiveTab('chapters')}
           className={`btn ${activeTab === 'chapters' ? 'btn-primary' : 'btn-outline'}`}
@@ -33,8 +42,15 @@ export default function Dashboard({ level, xp, gems, unlockedItems, deductGems, 
           className={`btn ${activeTab === 'museum' ? 'btn-primary' : 'btn-outline'}`}
           style={{ padding: '0.6rem 1.5rem', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
         >
-          🏛️ 나노바나나 보물 박물관 ({unlockedItems.length} / {SHOP_ITEMS.length})
+          🏛️ 과학 실험 보물 박물관 ({unlockedItems.length} / {SHOP_ITEMS.length})
         </button>
+        <Link 
+          to="/incorrect-notes"
+          className="btn btn-outline"
+          style={{ padding: '0.6rem 1.5rem', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '0.5rem', borderColor: 'var(--secondary)', color: 'var(--secondary)', textDecoration: 'none' }}
+        >
+          📝 오답노트 ({incorrectCount})
+        </Link>
       </div>
 
       {activeTab === 'chapters' ? (
@@ -60,12 +76,12 @@ export default function Dashboard({ level, xp, gems, unlockedItems, deductGems, 
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {/* 상점 정보 및 듀오링고 캐릭터 인사 */}
+          {/* 상점 정보 및 캐릭터 인사 */}
           <div className="glass-card" style={{ 
             display: 'flex', 
             alignItems: 'center', 
             gap: '2rem', 
-            backgroundColor: 'rgba(217, 119, 6, 0.04)',
+            backgroundColor: 'rgba(5, 150, 105, 0.04)',
             border: '1px dashed var(--secondary)',
             flexWrap: 'wrap'
           }}>
@@ -81,15 +97,15 @@ export default function Dashboard({ level, xp, gems, unlockedItems, deductGems, 
               boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
             }}>
               <img 
-                src="/images/king_banana.png" 
-                alt="Sejong Banana" 
+                src="/images/einstein.png" 
+                alt="Einstein" 
                 style={{ width: '80px', height: '80px', objectFit: 'contain' }}
               />
             </div>
             <div style={{ flex: 1, minWidth: '250px' }}>
-              <h3 style={{ color: 'var(--secondary)', margin: '0 0 0.5rem 0' }}>바나나 대왕의 역사 상점 & 박물관</h3>
+              <h3 style={{ color: 'var(--secondary)', margin: '0 0 0.5rem 0' }}>아인슈타인의 실험실 상점 & 박물관</h3>
               <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                학습 목표 달성, 서술형 만점(A, B 등급), 그리고 퀴즈 완성을 통해 보석(💎)을 모으세요! 모은 보석으로 교과서 속에 등장하는 역사적 보물들을 박물관에 해금해 채워나갈 수 있습니다.
+                학습 목표 달성, 서술형 고득점, 그리고 퀴즈 완성을 통해 보석(💎)을 모으세요! 모은 보석으로 역사적인 과학 실험 장비들을 과학 보물 박물관에 해금해 채워나갈 수 있습니다.
               </p>
             </div>
           </div>

@@ -3,14 +3,14 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 export async function gradeSubjectiveAnswer(question, expectedAnswer, userAnswer) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
   
-  const prompt = `역사 공부 서술형 답안 채점기입니다.
+  const prompt = `과학 공부 서술형 답안 채점기입니다.
 질문: ${question}
 모범 답안 / 핵심 용어: ${expectedAnswer}
 학생의 답안: ${userAnswer}
 
 위 질문과 모범 답안을 바탕으로 학생의 답안을 공정하게 평가해 주세요.
-A 등급: 모범 답안의 핵심 키워드가 포함되고 설명이 논리적이며 올바른 경우
-B 등급: 핵심 키워드가 일부 누락되었거나 내용이 약간 부족하지만 핵심 취지는 맞춘 경우
+A 등급: 모범 답안의 핵심 키워드가 포함되고 설명이 과학적으로 오류가 없으며 올바른 경우
+B 등급: 핵심 키워드가 일부 누락되었거나 설명이 약간 부족하지만 핵심 취지는 맞춘 경우
 C 등급: 오답이거나 질문의 요지에서 벗어난 경우
 
 JSON 형식으로 "grade" (A, B, C 중 하나)와 한국어로 학생에게 주는 격려와 보완점이 섞인 "feedback" 내용을 작성해서 돌려주세요.`;
@@ -82,7 +82,7 @@ export async function checkLearningObjective(objective, referenceData, userDescr
     ? referenceData.fillInTheBlanks.map(b => `- ${b.sentence} (정답: ${b.answer})`).join('\n')
     : "없음";
 
-  const prompt = `역사 학습 목표 서술형 답안 채점 및 피드백 튜터입니다.
+  const prompt = `과학 학습 목표 서술형 답안 채점 및 피드백 튜터입니다.
 
 [학습 목표]
 ${objective}
@@ -100,7 +100,7 @@ ${userDescription}
 학생이 작성한 내용을 바탕으로 해당 학습 목표를 달성했는지 평가해 주세요.
 1. 학생의 서술이 학습 목표의 핵심 내용을 올바르게 담고 있다면 'isCompleted'를 true로 설정하고, 칭찬과 축하의 피드백을 적어주세요.
 2. 만약 학습 목표를 완벽히 달성하기에 누락된 핵심 개념이나 오개념이 있다면 'isCompleted'를 false로 설정하세요.
-3. 중요: 누락되거나 틀린 점이 여러 개 있더라도 피드백에는 한 번에 모두 나열하지 말고, **가장 중요하거나 먼저 해결해야 할 1~2가지**에 대해서만 힌트를 주는 질문이나 유도 문장으로 피드백을 작성하세요. 학생이 직접 스스로 생각하고 내용을 보완할 수 있도록 돕는 것이 목적입니다. (예: "좋은 설명입니다! 그런데 역사적 사실이 사람마다 다르게 해석될 수 있는 원인이나 관점을 뜻하는 용어는 무엇인지 설명에 추가해 볼까요?")
+3. 중요: 누락되거나 틀린 점이 여러 개 있더라도 피드백에는 한 번에 모두 나열하지 말고, **가장 중요하거나 먼저 해결해야 할 1~2가지**에 대해서만 힌트를 주는 질문이나 유도 문장으로 피드백을 작성하세요. 학생이 직접 스스로 생각하고 내용을 보완할 수 있도록 돕는 것이 목적입니다. (예: "좋은 설명입니다! 그런데 녹말을 검출할 때 사용하는 지시약의 명칭은 무엇인지 설명에 추가해 볼까요?")
 
 반드시 아래 JSON 스키마를 준수하여 응답해 주세요.`;
 
@@ -170,7 +170,7 @@ export async function getObjectiveHint(objective, referenceData, currentText) {
     ? referenceData.fillInTheBlanks.map(b => `- ${b.sentence} (정답: ${b.answer})`).join('\n')
     : "없음";
 
-  const prompt = `역사 학습 목표 서술형 답안 작성을 돕는 힌트 도우미입니다.
+  const prompt = `과학 학습 목표 서술형 답안 작성을 돕는 힌트 도우미입니다.
 
 [학습 목표]
 ${objective}
@@ -188,7 +188,7 @@ ${currentText || "(아직 작성하지 않음)"}
 학생이 학습 목표에 대해 더 구체적으로 서술할 수 있도록 유도하는 구체적인 힌트를 한국어로 1~2문장으로 제공해 주세요.
 - 학생이 적은 내용이 있다면, 그 내용을 칭찬하고 다음으로 무엇을 서술하면 좋을지 구체적인 키워드나 질문 형태로 방향을 제시해 주세요.
 - 학생이 아직 아무것도 적지 않았다면, 학습 목표를 이루기 위해 어떤 내용을 먼저 써야 할지 첫 단추를 끼울 수 있는 구체적인 가이드 질문을 주세요.
-- 정답을 직접적으로 문장 그대로 다 알려주지 마시고, 힌트의 형식(예: "~에 대한 내용을 포함해서 적어볼까요?", "~가 강조한 사실은 무엇일까요?")을 유지해 주세요.
+- 정답을 직접적으로 문장 그대로 다 알려주지 마시고, 힌트의 형식(예: "~에 대한 내용을 포함해서 적어볼까요?", "~의 작용으로 엿당이 되는지 설명에 추가해 볼까요?")을 유지해 주세요.
 
 JSON 형식으로 "hint" 키에 힌트 문장(string)을 담아서 반환해 주세요.`;
 
