@@ -22,7 +22,8 @@ export default function Chapter({ nickname, addXp, addGems, triggerMascot }) {
   const [hasRequestedHint, setHasRequestedHint] = useState(false);
   const [isCheckingObjective, setIsCheckingObjective] = useState(false);
 
-  const prefix = nickname ? `${nickname}_` : '';
+  const activeNickname = localStorage.getItem('current_nickname') || '도담';
+  const prefix = activeNickname ? `${activeNickname}_` : '';
 
   const [objectiveNotes, setObjectiveNotes] = useState({});
   const [completedObjectives, setCompletedObjectives] = useState(new Set());
@@ -266,7 +267,7 @@ export default function Chapter({ nickname, addXp, addGems, triggerMascot }) {
       )}
 
       {activeTab === 'quiz' && (
-        <QuizMode chapterQuizzes={chapterQuizzes} addXp={addXp} triggerMascot={triggerMascot} />
+        <QuizMode chapterQuizzes={chapterQuizzes} addXp={addXp} triggerMascot={triggerMascot} nickname={nickname} />
       )}
 
       {activeTab === 'subjective_quiz' && (
@@ -613,7 +614,7 @@ function BlankCard({ data, index }) {
 // ----------------------------------------------------
 // QUIZ MODE (One question at a time with correct/incorrect sounds)
 // ----------------------------------------------------
-function QuizMode({ chapterQuizzes, addXp, triggerMascot }) {
+function QuizMode({ chapterQuizzes, addXp, triggerMascot, nickname }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -659,7 +660,8 @@ function QuizMode({ chapterQuizzes, addXp, triggerMascot }) {
 
       // Add to incorrect_notes in localStorage
       try {
-        const prefix = nickname ? `${nickname}_` : '';
+        const activeNickname = localStorage.getItem('current_nickname') || nickname || '도담';
+        const prefix = activeNickname ? `${activeNickname}_` : '';
         const saved = localStorage.getItem(`${prefix}incorrect_notes`);
         let currentList = [];
         try {

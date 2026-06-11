@@ -600,6 +600,21 @@ export async function playMascotSpeech(lineId) {
   });
 }
 
+export function stopMascotSpeech() {
+  stopStaticTTS();
+  if (elevenAudio) {
+    elevenAudio.pause();
+    elevenAudio = null;
+  }
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (e) {
+      console.warn("speechSynthesis cancel failed", e);
+    }
+  }
+}
+
 
 
 

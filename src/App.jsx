@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Chapter from './pages/Chapter';
 import IncorrectNotes from './pages/IncorrectNotes';
-import { playLevelUpSound, playGemRewardSound, playMilestoneFanfare, playXpSound, playMascotNotifySound, playMascotSpeech } from './utils/audio';
+import { playLevelUpSound, playGemRewardSound, playMilestoneFanfare, playXpSound, playMascotNotifySound, playMascotSpeech, stopMascotSpeech } from './utils/audio';
 import { MASCOT_LINES } from './data/mascotFeedback';
 
 export const SHOP_ITEMS = [
@@ -307,21 +307,28 @@ function App() {
 
         {/* 2) floating 실시간 나노바나나 캐릭터 피드백 피치버블 */}
         {mascotBubble && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 1900,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.45)',
-            backdropFilter: 'blur(5px)',
-            animation: 'fadeIn 0.25s ease-out'
-          }}>
+          <div 
+            onClick={() => {
+              setMascotBubble(null);
+              stopMascotSpeech();
+            }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 1900,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0, 0, 0, 0.45)',
+              backdropFilter: 'blur(5px)',
+              animation: 'fadeIn 0.25s ease-out',
+              cursor: 'pointer'
+            }}
+          >
             <div className="mascot-speaking" style={{
               display: 'flex',
               flexDirection: 'column',

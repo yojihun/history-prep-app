@@ -1,0 +1,8 @@
+*.pdf
+scratch/
+extract_text_all.py
+extracted_text.txt
+inspect_pdf.py
+science-app/
+node_modules/
+dist/
